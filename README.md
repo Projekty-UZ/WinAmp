@@ -12,7 +12,7 @@ Przed budową projektu, upewnij się, że masz ustawione dwie zmienne środowisk
 1. Otwórz zmienne środowiskowe
 2. W sekcji Zmienne systemowe, kliknij Nowy.
 3. Wpisz `PYTHON_PATH` jako nazwę zmiennej i ścieżkę do instalacji Pythona jako wartość zmiennej.
-4. Powtórz kroki 3-4 dla zmiennej `PYTHON_VERSION`, wpisując odpowiednią wersję Pythona jako wartość.
+4. Powtórz kroki 2-3 dla zmiennej `PYTHON_VERSION`, wpisując odpowiednią wersję Pythona jako wartość.
 5. Kliknij OK, aby zamknąć wszystkie okna dialogowe.
 6. Jeśli Gradle nie wykrywa zmian, zrestartuj Android Studio.
 

@@ -12,17 +12,19 @@ progress_func.progress = 0
 message = ""
 
 
-def download_from_yt(link,name):
+def download_from_yt(link):
     files_dir=join(str(Python.getPlatform().getApplication().getFilesDir()),"musicfiles")
-# TODO: Add Thumbnail Download
     global message
     try:
         yt = pytube.YouTube(url=link, on_progress_callback=progress_func)
         stream = yt.streams.get_audio_only()
-        stream.download(output_path=files_dir, filename=f"{name}_{int(time.time())}.mp4")
-        message = "Downloaded"
+        name = yt.title
+        author = yt.author
+        filename = f"{int(time.time())}.mp4"
+        stream.download(output_path=files_dir, filename=filename)
+        message = ["Downloaded",name,author,filename]
     except Exception as e:
-        message = "Download failed"
+        message = ["Download failed"]
         print(e)
 
 

@@ -11,7 +11,7 @@ import com.example.musicmanager.database.models.Album
 import com.example.musicmanager.database.models.Song
 import com.example.musicmanager.database.models.SongAlbumCross
 
-@Database(entities = [Album::class, Song::class, SongAlbumCross::class], version = 1)
+@Database(entities = [Album::class, Song::class, SongAlbumCross::class], version = 1, exportSchema = false)
 abstract  class AppDatabase: RoomDatabase(){
     abstract fun albumDao(): AlbumDao
     abstract fun songDao(): SongDao
@@ -21,12 +21,13 @@ abstract  class AppDatabase: RoomDatabase(){
         private var INSTANCE: AppDatabase? = null
         fun getDatabase(context: Context): AppDatabase{
             return INSTANCE ?: synchronized(this){
-                Room.databaseBuilder(
-                    context,
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
                     AppDatabase::class.java,
-                    "MusicManagerDatabase"
+                    "music_manager_database"
                 ).build()
-                    .also { INSTANCE = it }
+                INSTANCE = instance
+                return instance
             }
         }
     }

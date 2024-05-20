@@ -38,6 +38,7 @@ fun AddSongScreen() {
         ) {
             val infotext = remember { mutableStateOf("") }
             var yt_link by remember { mutableStateOf("") }
+            var isenabled by remember { mutableStateOf(true) }
             TextField(
                 value = yt_link,
                 onValueChange = { yt_link = it},
@@ -46,8 +47,11 @@ fun AddSongScreen() {
                 singleLine = true,
                 )
             Button(
+                enabled = isenabled,
                 onClick = {
+                    isenabled = false
                     python_script_button(module,yt_link,infotext)
+                    isenabled = true
                 },
 
                 ) {

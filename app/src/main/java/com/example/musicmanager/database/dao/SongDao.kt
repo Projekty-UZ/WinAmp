@@ -20,5 +20,5 @@ interface SongDao {
     @Query("SELECT * FROM Songs")
     fun getAllSongs(): LiveData<List<Song>>
     @Query("SELECT DISTINCT * FROM Songs WHERE title = :query or artist = :query")
-    suspend fun getByQuery(query: String): LiveData<List<Song>>
+    fun getByQuery(query: String): LiveData<List<Song>>
 }

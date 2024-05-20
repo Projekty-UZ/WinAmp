@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.chaquopy)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -66,6 +67,8 @@ chaquopy {
 }
 
 dependencies {
+    ksp(libs.androidx.room.compiler)
+    implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room)
     implementation(libs.androidx.navigation)
     implementation(libs.androidx.core.ktx)

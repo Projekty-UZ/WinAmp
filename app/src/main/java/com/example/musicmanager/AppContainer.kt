@@ -3,6 +3,7 @@ package com.example.musicmanager
 import android.content.Context
 import com.example.musicmanager.database.AppDatabase
 import com.example.musicmanager.database.Repository
+import kotlinx.coroutines.CoroutineScope
 
 class AppContainer {
     lateinit var db:AppDatabase
@@ -14,7 +15,7 @@ class AppContainer {
             db.songAlbumCrossDao()
         )
     }
-    fun provide(context: Context){
-        db = AppDatabase.getDatabase(context)
+    fun provide(context: Context,scope: CoroutineScope){
+        db = AppDatabase.getDatabase(context,scope)
     }
 }

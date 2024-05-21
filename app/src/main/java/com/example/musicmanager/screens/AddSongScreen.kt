@@ -21,9 +21,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.chaquo.python.PyObject
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
+import com.example.musicmanager.AppContainer
+import com.example.musicmanager.MusicManagerApplication
+import com.example.musicmanager.ui.theme.SongViewModel
+import com.example.musicmanager.ui.theme.SongViewModelFactory
 
 @Composable
 fun AddSongScreen() {
+    var songViewModel: SongViewModel = SongViewModelFactory(repository = MusicManagerApplication().repository).create(SongViewModel::class.java)
     if(!Python.isStarted()) {
         Python.start(AndroidPlatform(LocalContext.current))
     }

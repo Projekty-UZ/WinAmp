@@ -16,4 +16,6 @@ class Repository(
     fun getAllSongs() = songDao.getAllSongs()
     suspend fun getSongByQuery(query: String) = songDao.getByQuery(query)
     suspend fun createSong(song: Song) = songDao.insert(song)
+    suspend fun updateSong(song: Song) = songDao.update(song)
+    suspend fun deleteSong(song: Song) = songDao.delete(song)
 }

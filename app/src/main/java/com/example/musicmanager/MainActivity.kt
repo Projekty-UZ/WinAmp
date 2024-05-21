@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
@@ -22,8 +23,13 @@ import com.example.musicmanager.navigation.BottomNavBar
 import com.example.musicmanager.navigation.BottomNavItem
 import com.example.musicmanager.navigation.Navigation
 import com.example.musicmanager.ui.theme.MusicManagerTheme
+import com.example.musicmanager.ui.theme.SongViewModel
+import com.example.musicmanager.ui.theme.SongViewModelFactory
 
 class MainActivity : ComponentActivity() {
+    val songViewModel: SongViewModel by viewModels<SongViewModel>{
+        SongViewModelFactory((application as MusicManagerApplication).repository)
+    }
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,7 +52,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                 ) {
-                    Navigation(navController = navController)
+                    Navigation(navController = navController,songViewModel)
                 }
             }
         }

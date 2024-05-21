@@ -22,7 +22,7 @@ def download_from_yt(link):
         author = yt.author
         filename = f"{int(time.time())}.mp4"
         stream.download(output_path=files_dir, filename=filename)
-        message = ["Downloaded",name,author,filename]
+        message = ["Downloaded",name,author,yt.length,join(files_dir,filename)]
     except Exception as e:
         message = ["Download failed"]
         print(e)

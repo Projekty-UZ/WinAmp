@@ -17,18 +17,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.chaquo.python.PyObject
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
-import com.example.musicmanager.AppContainer
 import com.example.musicmanager.MusicManagerApplication
+import com.example.musicmanager.database.models.Song
 import com.example.musicmanager.ui.theme.SongViewModel
 import com.example.musicmanager.ui.theme.SongViewModelFactory
 
 @Composable
-fun AddSongScreen() {
-    var songViewModel: SongViewModel = SongViewModelFactory(repository = MusicManagerApplication().repository).create(SongViewModel::class.java)
+fun AddSongScreen(navController: NavHostController, songViewModel: SongViewModel) {
     if(!Python.isStarted()) {
         Python.start(AndroidPlatform(LocalContext.current))
     }
@@ -55,7 +55,7 @@ fun AddSongScreen() {
                 enabled = isenabled,
                 onClick = {
                     isenabled = false
-                    python_script_button(module,yt_link,infotext)
+                    python_script_button(module,yt_link,infotext,songViewModel)
                     isenabled = true
                 },
 
@@ -66,7 +66,7 @@ fun AddSongScreen() {
         }
     }
 }
-fun python_script_button(module:PyObject,yt_link:String,infotext: MutableState<String>){
+fun python_script_button(module:PyObject,yt_link:String,infotext: MutableState<String>,songViewModel: SongViewModel){
     val validated = validate_input(yt_link)
     var return_table = emptyList<String>()
     if(validated){
@@ -75,6 +75,8 @@ fun python_script_button(module:PyObject,yt_link:String,infotext: MutableState<S
         println(return_table)
         if(return_table[0] == "Downloaded") {
             infotext.value = "Downloaded"
+            val song = Song(id=0,title=return_table[1],artist=return_table[2],duration=return_table[3].toInt(),pathToFile=return_table[4])
+            songViewModel.addSong(song)
         }
         else{
             infotext.value = "Download Failed"

@@ -67,6 +67,7 @@ chaquopy {
 }
 
 dependencies {
+    implementation(libs.androidx.runtime.livedata)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room)

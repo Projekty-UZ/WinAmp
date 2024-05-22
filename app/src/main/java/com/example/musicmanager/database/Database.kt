@@ -23,37 +23,18 @@ abstract  class AppDatabase: RoomDatabase(){
         @Volatile
         private var INSTANCE: AppDatabase? = null
         fun getDatabase(context: Context,scope: CoroutineScope): AppDatabase{
+            //TODO delete it later
+            //context.deleteDatabase("music_manager_database")
             return INSTANCE ?: synchronized(this){
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "music_manager_database"
                 ).fallbackToDestructiveMigration()
-                    .addCallback(SongDatabaseCallback(scope))
                     .build()
                 INSTANCE = instance
                 return instance
             }
-        }
-    }
-    private class SongDatabaseCallback(
-        private val scope: CoroutineScope
-    ) : RoomDatabase.Callback() {
-            override fun onCreate(db: SupportSQLiteDatabase) {
-            super.onCreate(db)
-            INSTANCE?.let { database ->
-                scope.launch {
-                    populateDatabase(database.songDao())
-                }
-            }
-        }
-
-        suspend fun populateDatabase(songDao: SongDao) {
-
-            var song = Song(id = 0,title="Hello", artist = "Adele", duration = 180, pathToFile = "musicfiles/test.mp4")
-            songDao.insert(song)
-
-            // TODO: Add your own words!
         }
     }
 }

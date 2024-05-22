@@ -17,18 +17,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.chaquo.python.PyObject
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
-import com.example.musicmanager.MusicManagerApplication
 import com.example.musicmanager.database.models.Song
-import com.example.musicmanager.ui.theme.SongViewModel
-import com.example.musicmanager.ui.theme.SongViewModelFactory
+import com.example.musicmanager.ui.theme.viewModels.DatabaseViewModel
+import com.example.musicmanager.ui.theme.viewModels.LocalDatabaseViewModel
 
 @Composable
-fun AddSongScreen(navController: NavHostController, songViewModel: SongViewModel) {
+fun AddSongScreen(navController: NavHostController) {
+    val databaseViewModel = LocalDatabaseViewModel.current
     if(!Python.isStarted()) {
         Python.start(AndroidPlatform(LocalContext.current))
     }
@@ -55,7 +54,7 @@ fun AddSongScreen(navController: NavHostController, songViewModel: SongViewModel
                 enabled = isenabled,
                 onClick = {
                     isenabled = false
-                    python_script_button(module,yt_link,infotext,songViewModel)
+                    python_script_button(module,yt_link,infotext,databaseViewModel)
                     isenabled = true
                 },
 
@@ -66,17 +65,17 @@ fun AddSongScreen(navController: NavHostController, songViewModel: SongViewModel
         }
     }
 }
-fun python_script_button(module:PyObject,yt_link:String,infotext: MutableState<String>,songViewModel: SongViewModel){
+fun python_script_button(module:PyObject,yt_link:String,infotext: MutableState<String>,databaseViewModel: DatabaseViewModel){
     val validated = validate_input(yt_link)
     var return_table = emptyList<String>()
     if(validated){
-        download_from_yt(module)
+        download_from_yt(module,yt_link)
         return_table = module.callAttr("get_message").asList().map { it.toString() }
         println(return_table)
         if(return_table[0] == "Downloaded") {
             infotext.value = "Downloaded"
             val song = Song(id=0,title=return_table[1],artist=return_table[2],duration=return_table[3].toInt(),pathToFile=return_table[4])
-            songViewModel.addSong(song)
+            databaseViewModel.addSong(song)
         }
         else{
             infotext.value = "Download Failed"
@@ -86,8 +85,8 @@ fun python_script_button(module:PyObject,yt_link:String,infotext: MutableState<S
     }
 }
 
-fun download_from_yt(module:PyObject){
-    module.callAttr("download_from_yt","https://www.youtube.com/watch?v=suAR1PYFNYA")
+fun download_from_yt(module:PyObject,yt_link: String){
+    module.callAttr("download_from_yt",yt_link)
 }
 fun validate_input(yt_link:String):Boolean{
     val pattern = """^(http(s)?://)?((w){3}.)?youtu(be|.be)?(\.com)?/.+""".toRegex()

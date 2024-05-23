@@ -1,4 +1,4 @@
-package com.example.musicmanager.navigation
+package com.example.musicmanager.ui.theme.components
 
 
 import androidx.compose.material3.Icon
@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.musicmanager.navigation.BottomNavItem
 
 @Composable
 fun BottomNavBar(

@@ -5,14 +5,15 @@ from com.chaquo.python import Python
 
 def progress_func(stream, chunk, bytes_remaining):
     progress = (stream.filesize - bytes_remaining) / stream.filesize
-    progress_func.progress = int(progress * 100)
+    progress_func.progress = progress
 
 
-progress_func.progress = 0
+progress_func.progress = 0.0
 message = ""
 
 
 def download_from_yt(link):
+    progress_func.progress = 0.0
     files_dir=join(str(Python.getPlatform().getApplication().getFilesDir()),"musicfiles")
     global message
     try:

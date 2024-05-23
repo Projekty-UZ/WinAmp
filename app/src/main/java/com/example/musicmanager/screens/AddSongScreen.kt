@@ -1,35 +1,45 @@
 package com.example.musicmanager.screens
 
+import android.content.Context
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.chaquo.python.PyObject
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 import com.example.musicmanager.database.models.Song
+import com.example.musicmanager.ui.theme.viewModels.AddSongScreenViewModel
 import com.example.musicmanager.ui.theme.viewModels.DatabaseViewModel
 import com.example.musicmanager.ui.theme.viewModels.LocalDatabaseViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun AddSongScreen(navController: NavHostController) {
     val databaseViewModel = LocalDatabaseViewModel.current
+    val coroutineScope = rememberCoroutineScope()
+    val addSongScreenViewModel:AddSongScreenViewModel = viewModel()
+    val context = LocalContext.current
     if(!Python.isStarted()) {
-        Python.start(AndroidPlatform(LocalContext.current))
+        Python.start(AndroidPlatform(context))
     }
     val py = Python.getInstance()
     val module= py.getModule("test")
@@ -40,32 +50,54 @@ fun AddSongScreen(navController: NavHostController) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            val infotext = remember { mutableStateOf("") }
-            var yt_link by remember { mutableStateOf("") }
-            var isenabled by remember { mutableStateOf(true) }
             TextField(
-                value = yt_link,
-                onValueChange = { yt_link = it},
+                value = addSongScreenViewModel.yt_link.value,
+                onValueChange = { addSongScreenViewModel.yt_link.value = it},
                 placeholder = { Text("Enter YouTube Link") },
                 modifier = Modifier.width(300.dp),
                 singleLine = true,
                 )
             Button(
-                enabled = isenabled,
+                enabled = !addSongScreenViewModel.loading.value,
                 onClick = {
-                    isenabled = false
-                    python_script_button(module,yt_link,infotext,databaseViewModel)
-                    isenabled = true
-                },
+                    addSongScreenViewModel.loading.value = true
+                    addSongScreenViewModel.progress.floatValue = 0f
+                    coroutineScope.launch {
+                        // Start the python script in a background thread
+                        withContext(Dispatchers.IO) {
+                            python_script_button(module, addSongScreenViewModel.yt_link.value, context, databaseViewModel)
+                        }
 
+                    }
+                    addSongScreenViewModel.viewModelScope.launch{
+                        while(module.callAttr("get_progress").toFloat() == 1f){
+                            delay(100)
+                        }
+                        while(addSongScreenViewModel.loading.value){
+                            addSongScreenViewModel.progress.floatValue = module.callAttr("get_progress").toFloat()
+                            Log.d("Progress", addSongScreenViewModel.progress.floatValue.toString())
+                            delay(500)
+                            if(addSongScreenViewModel.progress.floatValue == 1f){
+                                addSongScreenViewModel.loading.value = false
+                                addSongScreenViewModel.progress.floatValue = 0f
+                            }
+                        }
+
+                    }
+                },
                 ) {
                 Text("Download Song")
             }
-            Text(infotext.value)
+            if(addSongScreenViewModel.loading.value){
+                LinearProgressIndicator(
+                    progress = addSongScreenViewModel.progress.floatValue,
+                    modifier = Modifier.width(300.dp),
+                )
+            }
         }
     }
 }
-fun python_script_button(module:PyObject,yt_link:String,infotext: MutableState<String>,databaseViewModel: DatabaseViewModel){
+fun python_script_button(module:PyObject, yt_link:String, context : Context, databaseViewModel: DatabaseViewModel){
     val validated = validate_input(yt_link)
     var return_table = emptyList<String>()
     if(validated){
@@ -73,15 +105,21 @@ fun python_script_button(module:PyObject,yt_link:String,infotext: MutableState<S
         return_table = module.callAttr("get_message").asList().map { it.toString() }
         println(return_table)
         if(return_table[0] == "Downloaded") {
-            infotext.value = "Downloaded"
+            databaseViewModel.viewModelScope.launch(Dispatchers.Main) {
+                Toast.makeText(context, "Successful Download", Toast.LENGTH_SHORT).show()
+            }
             val song = Song(id=0,title=return_table[1],artist=return_table[2],duration=return_table[3].toInt(),pathToFile=return_table[4])
             databaseViewModel.addSong(song)
         }
         else{
-            infotext.value = "Download Failed"
+            databaseViewModel.viewModelScope.launch(Dispatchers.Main) {
+                Toast.makeText(context, "Download Failed", Toast.LENGTH_SHORT).show()
+            }
         }
     }else{
-        infotext.value = "Invalid YouTube Link"
+        databaseViewModel.viewModelScope.launch(Dispatchers.Main) {
+            Toast.makeText(context, "Enter Valid YT Link", Toast.LENGTH_SHORT).show()
+        }
     }
 }
 

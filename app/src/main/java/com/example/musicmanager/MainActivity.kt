@@ -9,7 +9,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.res.painterResource
 import androidx.navigation.compose.rememberNavController
-import com.example.musicmanager.navigation.BottomNavBar
+import com.example.musicmanager.ui.theme.components.BottomNavBar
 import com.example.musicmanager.navigation.BottomNavItem
 import com.example.musicmanager.navigation.Navigation
 import com.example.musicmanager.ui.theme.MusicManagerTheme

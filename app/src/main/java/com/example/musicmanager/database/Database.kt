@@ -30,8 +30,7 @@ abstract  class AppDatabase: RoomDatabase(){
                     context.applicationContext,
                     AppDatabase::class.java,
                     "music_manager_database"
-                ).fallbackToDestructiveMigration()
-                    .build()
+                ).build()
                 INSTANCE = instance
                 return instance
             }

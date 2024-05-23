@@ -19,7 +19,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
 import com.chaquo.python.PyObject
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
@@ -33,7 +32,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
-fun AddSongScreen(navController: NavHostController) {
+fun AddSongScreen() {
     val databaseViewModel = LocalDatabaseViewModel.current
     val coroutineScope = rememberCoroutineScope()
     val addSongScreenViewModel:AddSongScreenViewModel = viewModel()
@@ -65,7 +64,7 @@ fun AddSongScreen(navController: NavHostController) {
                     coroutineScope.launch {
                         // Start the python script in a background thread
                         withContext(Dispatchers.IO) {
-                            python_script_button(module, addSongScreenViewModel.yt_link.value, context, databaseViewModel)
+                            python_script_button(module, addSongScreenViewModel.yt_link.value, context,addSongScreenViewModel, databaseViewModel)
                         }
 
                     }
@@ -97,18 +96,16 @@ fun AddSongScreen(navController: NavHostController) {
         }
     }
 }
-fun python_script_button(module:PyObject, yt_link:String, context : Context, databaseViewModel: DatabaseViewModel){
+fun python_script_button(module:PyObject, yt_link:String, context : Context,addSongScreenViewModel:AddSongScreenViewModel, databaseViewModel: DatabaseViewModel){
     val validated = validate_input(yt_link)
-    var return_table = emptyList<String>()
     if(validated){
         download_from_yt(module,yt_link)
-        return_table = module.callAttr("get_message").asList().map { it.toString() }
-        println(return_table)
-        if(return_table[0] == "Downloaded") {
+        val returnTable = module.callAttr("get_message").asList().map { it.toString() }
+        if(returnTable[0] == "Downloaded") {
             databaseViewModel.viewModelScope.launch(Dispatchers.Main) {
                 Toast.makeText(context, "Successful Download", Toast.LENGTH_SHORT).show()
             }
-            val song = Song(id=0,title=return_table[1],artist=return_table[2],duration=return_table[3].toInt(),pathToFile=return_table[4])
+            val song = Song(id=0,title=returnTable[1],artist=returnTable[2],duration=returnTable[3].toInt(),pathToFile=returnTable[4])
             databaseViewModel.addSong(song)
         }
         else{
@@ -119,6 +116,8 @@ fun python_script_button(module:PyObject, yt_link:String, context : Context, dat
     }else{
         databaseViewModel.viewModelScope.launch(Dispatchers.Main) {
             Toast.makeText(context, "Enter Valid YT Link", Toast.LENGTH_SHORT).show()
+            addSongScreenViewModel.loading.value = false
+            addSongScreenViewModel.progress.floatValue = 0f
         }
     }
 }

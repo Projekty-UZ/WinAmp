@@ -9,7 +9,6 @@ import androidx.navigation.compose.NavHost
 import com.example.musicmanager.screens.AddSongScreen
 import com.example.musicmanager.screens.PlaylistScreen
 import com.example.musicmanager.screens.SongScreen
-import com.example.musicmanager.ui.theme.viewModels.DatabaseViewModel
 
 @Composable
 fun Navigation(navController: NavHostController){
@@ -26,7 +25,7 @@ fun Navigation(navController: NavHostController){
             PlaylistScreen()
         }
         composable("add_song") {
-            AddSongScreen(navController)
+            AddSongScreen()
         }
     }
 }

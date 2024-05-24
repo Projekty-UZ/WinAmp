@@ -8,8 +8,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
-import com.example.musicmanager.ui.theme.components.ListedSong
-import com.example.musicmanager.ui.theme.viewModels.LocalDatabaseViewModel
+import com.example.musicmanager.ui.components.ListedSong
+import com.example.musicmanager.ui.viewModels.LocalDatabaseViewModel
 
 @Composable
 fun SongScreen() {

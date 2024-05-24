@@ -23,9 +23,9 @@ import com.chaquo.python.PyObject
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 import com.example.musicmanager.database.models.Song
-import com.example.musicmanager.ui.theme.viewModels.AddSongScreenViewModel
-import com.example.musicmanager.ui.theme.viewModels.DatabaseViewModel
-import com.example.musicmanager.ui.theme.viewModels.LocalDatabaseViewModel
+import com.example.musicmanager.ui.viewModels.AddSongScreenViewModel
+import com.example.musicmanager.ui.viewModels.DatabaseViewModel
+import com.example.musicmanager.ui.viewModels.LocalDatabaseViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -35,7 +35,7 @@ import kotlinx.coroutines.withContext
 fun AddSongScreen() {
     val databaseViewModel = LocalDatabaseViewModel.current
     val coroutineScope = rememberCoroutineScope()
-    val addSongScreenViewModel:AddSongScreenViewModel = viewModel()
+    val addSongScreenViewModel: AddSongScreenViewModel = viewModel()
     val context = LocalContext.current
     if(!Python.isStarted()) {
         Python.start(AndroidPlatform(context))
@@ -96,7 +96,7 @@ fun AddSongScreen() {
         }
     }
 }
-fun python_script_button(module:PyObject, yt_link:String, context : Context,addSongScreenViewModel:AddSongScreenViewModel, databaseViewModel: DatabaseViewModel){
+fun python_script_button(module:PyObject, yt_link:String, context : Context, addSongScreenViewModel: AddSongScreenViewModel, databaseViewModel: DatabaseViewModel){
     val validated = validate_input(yt_link)
     if(validated){
         download_from_yt(module,yt_link)

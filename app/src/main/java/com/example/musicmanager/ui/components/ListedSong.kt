@@ -1,4 +1,4 @@
-package com.example.musicmanager.ui.theme.components
+package com.example.musicmanager.ui.components
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Divider

@@ -1,9 +1,7 @@
-package com.example.musicmanager.ui.theme.viewModels
+package com.example.musicmanager.ui.viewModels
 
-import android.content.Context
-import android.widget.Toast
+
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel

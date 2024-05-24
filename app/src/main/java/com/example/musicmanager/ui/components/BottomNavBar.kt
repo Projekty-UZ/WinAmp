@@ -1,4 +1,4 @@
-package com.example.musicmanager.ui.theme.components
+package com.example.musicmanager.ui.components
 
 
 import androidx.compose.material3.Icon

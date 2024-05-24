@@ -1,4 +1,4 @@
-package com.example.musicmanager.ui.theme.viewModels
+package com.example.musicmanager.ui.viewModels
 
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf

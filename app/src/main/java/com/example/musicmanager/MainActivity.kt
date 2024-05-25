@@ -25,55 +25,60 @@ class MainActivity : ComponentActivity() {
     val databaseViewModel: DatabaseViewModel by viewModels<DatabaseViewModel>{
         DatabaseViewModelFactory((application as MusicManagerApplication).repository)
     }
+
     val screensWithBottomNav= listOf(
         Screens.SongScreen.route,
         Screens.PlaylistScreen.route,
         Screens.AddSongScreen.route
     )
+
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            MusicManagerTheme {
-                CompositionLocalProvider (
-                    LocalDatabaseViewModel provides databaseViewModel
-                ){
-                val navController = rememberNavController()
-                val currentBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = currentBackStackEntry?.destination?.route
-                Scaffold(
-                        bottomBar = {
-                            if(currentRoute in screensWithBottomNav) {
-                                BottomNavBar(
-                                    items = listOf(
-                                        BottomNavItem(
-                                            Screens.SongScreen.route,
-                                            "Songs",
-                                            painterResource(id = R.drawable.music_note)
-                                        ),
-                                        BottomNavItem(
-                                            Screens.PlaylistScreen.route,
-                                            "Playlists",
-                                            painterResource(id = R.drawable.music_playlist)
-                                        ),
-                                        BottomNavItem(
-                                            Screens.AddSongScreen.route,
-                                            "Add Song",
-                                            painterResource(id = R.drawable.add)
-                                        )
-                                    ),
-                                    navController = navController,
-                                    onItemClick = {
-                                        navController.navigate(it.route)
-                                    }
-                                )
-                            }
-                    }
 
-                ) {
-                    Navigation(navController = navController)
+            setContent {
+                MusicManagerTheme {
+                    CompositionLocalProvider(
+                        LocalDatabaseViewModel provides databaseViewModel
+                    ) {
+                        val navController = rememberNavController()
+                        val currentBackStackEntry by navController.currentBackStackEntryAsState()
+                        val currentRoute = currentBackStackEntry?.destination?.route
+                        Scaffold(
+                            bottomBar = {
+                                if (currentRoute in screensWithBottomNav) {
+                                    BottomNavBar(
+                                        items = listOf(
+                                            BottomNavItem(
+                                                Screens.SongScreen.route,
+                                                "Songs",
+                                                painterResource(id = R.drawable.music_note)
+                                            ),
+                                            BottomNavItem(
+                                                Screens.PlaylistScreen.route,
+                                                "Playlists",
+                                                painterResource(id = R.drawable.music_playlist)
+                                            ),
+                                            BottomNavItem(
+                                                Screens.AddSongScreen.route,
+                                                "Add Song",
+                                                painterResource(id = R.drawable.add)
+                                            )
+                                        ),
+                                        navController = navController,
+                                        onItemClick = {
+                                            navController.navigate(it.route)
+                                        }
+                                    )
+                                }
+                            }
+
+                        ) {
+                            Navigation(navController = navController)
+                        }
+                    }
                 }
-            }}
-        }
+            }
+
     }
 }

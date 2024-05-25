@@ -1,5 +1,8 @@
 package com.example.musicmanager.ui.components
 
+
+import android.content.Intent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
@@ -7,15 +10,23 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.musicmanager.R
+import com.example.musicmanager.SongPlayerService
 import com.example.musicmanager.database.models.Song
 
 @Composable
 fun ListedSong(song: Song){
+    val context = LocalContext.current
     ListItem(
+        modifier = Modifier.clickable{
+            val playIntent = Intent(context, SongPlayerService::class.java).apply {
+                putExtra("pathToFile", song.pathToFile)
+            }
+            context.startService(playIntent)
+        },
         leadingContent = {
             Icon(
                 painter = painterResource(id = R.drawable.music_note),
@@ -44,9 +55,3 @@ fun ListedSong(song: Song){
     Divider()
 }
 
-@Preview
-@Composable
-fun PreviewlistedSong(){
-    ListedSong(Song(1,"Humble","Kendrick Lamar",333,"test"))
-    ListedSong(Song(1,"Humble","Kendrick Lamar",333,"test"))
-}

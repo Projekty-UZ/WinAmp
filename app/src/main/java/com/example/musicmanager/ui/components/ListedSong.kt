@@ -13,17 +13,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.example.musicmanager.MainActivity
 import com.example.musicmanager.R
 import com.example.musicmanager.SongPlayerService
 import com.example.musicmanager.database.models.Song
 
 @Composable
 fun ListedSong(song: Song){
-    val context = LocalContext.current
+    val context = LocalContext.current as MainActivity
     ListItem(
         modifier = Modifier.clickable{
             val playIntent = Intent(context, SongPlayerService::class.java).apply {
+                action = SongPlayerService.Actions.START_SONG.toString()
                 putExtra("pathToFile", song.pathToFile)
+                putExtra("title", song.title)
+                putExtra("artist", song.artist)
+                putExtra("id", song.id)
+                putExtra("duration", song.duration)
             }
             context.startService(playIntent)
         },

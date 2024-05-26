@@ -9,6 +9,7 @@ import androidx.navigation.compose.NavHost
 import com.example.musicmanager.screens.AddSongScreen
 import com.example.musicmanager.screens.AnimatedSplashScreen
 import com.example.musicmanager.screens.PlaylistScreen
+import com.example.musicmanager.screens.SongControlScreen
 import com.example.musicmanager.screens.SongScreen
 
 @Composable
@@ -30,6 +31,9 @@ fun Navigation(navController: NavHostController){
         }
         composable(Screens.AddSongScreen.route) {
             AddSongScreen()
+        }
+        composable(Screens.SongControlScreen.route) {
+            SongControlScreen()
         }
     }
 }

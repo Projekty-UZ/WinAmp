@@ -5,4 +5,5 @@ sealed class Screens (val route: String){
     object SongScreen: Screens("songs")
     object PlaylistScreen: Screens("playlists")
     object AddSongScreen: Screens("add_song")
+    object SongControlScreen: Screens("song_control")
 }

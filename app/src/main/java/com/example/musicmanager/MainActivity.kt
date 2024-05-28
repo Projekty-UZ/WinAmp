@@ -33,7 +33,6 @@ class MainActivity : ComponentActivity() {
     val databaseViewModel: DatabaseViewModel by viewModels<DatabaseViewModel>{
         DatabaseViewModelFactory((application as MusicManagerApplication).repository)
     }
-
     var musicService: SongPlayerService? = null
 
     private var isBound = false
@@ -42,10 +41,14 @@ class MainActivity : ComponentActivity() {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder = service as SongPlayerService.SongPlayerBinder
             musicService = binder.getService()
+            databaseViewModel.allSongs.observe(this@MainActivity){
+                musicService?.songs = it.toMutableList()
+            }
             isBound = true
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
+            musicService?.songs = mutableListOf()
             isBound = false
         }
     }
@@ -127,10 +130,14 @@ class MainActivity : ComponentActivity() {
 
     }
     override fun onDestroy() {
-        super.onDestroy()
+        val intent=Intent(this, SongPlayerService::class.java).apply{
+            action = SongPlayerService.Actions.STOP_SERVICE.toString()
+        }
+        startService(intent)
         if (isBound) {
             unbindService(serviceConnection)
             isBound = false
         }
+        super.onDestroy()
     }
 }

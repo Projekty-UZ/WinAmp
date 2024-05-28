@@ -6,18 +6,19 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavController
 import com.example.musicmanager.ui.components.ListedSong
 import com.example.musicmanager.ui.viewModels.LocalDatabaseViewModel
 
 @Composable
-fun SongScreen() {
+fun SongScreen(navController: NavController) {
     val databaseViewModel = LocalDatabaseViewModel.current
     val allSongs = databaseViewModel.allSongs.observeAsState(emptyList())
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
     ) {
         items(allSongs.value) { song ->
-            ListedSong(song)
+            ListedSong(song, navController)
         }
     }
 }

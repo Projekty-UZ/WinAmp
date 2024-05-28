@@ -13,14 +13,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.example.musicmanager.MainActivity
+import androidx.navigation.NavController
 import com.example.musicmanager.R
 import com.example.musicmanager.SongPlayerService
 import com.example.musicmanager.database.models.Song
+import com.example.musicmanager.navigation.Screens
 
 @Composable
-fun ListedSong(song: Song){
-    val context = LocalContext.current as MainActivity
+fun ListedSong(song: Song, navController: NavController){
+    val context = LocalContext.current
     ListItem(
         modifier = Modifier.clickable{
             val playIntent = Intent(context, SongPlayerService::class.java).apply {
@@ -32,6 +33,7 @@ fun ListedSong(song: Song){
                 putExtra("duration", song.duration)
             }
             context.startService(playIntent)
+            navController.navigate(Screens.SongControlScreen.route)
         },
         leadingContent = {
             Icon(

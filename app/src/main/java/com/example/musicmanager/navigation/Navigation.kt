@@ -21,7 +21,7 @@ fun Navigation(navController: NavHostController){
         exitTransition = { ExitTransition.None }
     ) {
         composable(Screens.SongScreen.route) {
-            SongScreen()
+            SongScreen(navController = navController)
         }
         composable(Screens.SplashScreen.route) {
             AnimatedSplashScreen(navController = navController)

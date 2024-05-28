@@ -1,5 +1,6 @@
 package com.example.musicmanager.ui.components
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -34,7 +36,7 @@ import com.example.musicmanager.ui.theme.Purple40
 @Composable
 fun SmallPlayback(navController: NavController,musicService: SongPlayerService) {
     val isPlaying = remember { mutableStateOf(true) }
-
+    val context = LocalContext.current
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -78,7 +80,12 @@ fun SmallPlayback(navController: NavController,musicService: SongPlayerService) 
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { /* TODO: Implement previous track action */ }) {
+                IconButton(onClick = {
+                    val intent = Intent(context, SongPlayerService::class.java).apply {
+                        action = SongPlayerService.Actions.PREVIOUS.toString()
+                    }
+                    context.startService(intent)
+                }) {
                     Icon(
                         painter = painterResource(id = R.drawable.previous_song_icon),
                         contentDescription = "Previous Track",
@@ -86,15 +93,32 @@ fun SmallPlayback(navController: NavController,musicService: SongPlayerService) 
                     )
                 }
 
-                IconButton(onClick = { isPlaying.value = !isPlaying.value }) {
+                IconButton(onClick = {
+                    if(musicService.isplaying.value) {
+                        val intent = Intent(context, SongPlayerService::class.java).apply {
+                            action = SongPlayerService.Actions.PAUSE.toString()
+                        }
+                        context.startService(intent)
+                    } else {
+                        val intent = Intent(context, SongPlayerService::class.java).apply {
+                            action = SongPlayerService.Actions.PLAY.toString()
+                        }
+                        context.startService(intent)
+                    }
+                }) {
                     Icon(
-                        painter = painterResource(if (isPlaying.value) R.drawable.pause_song_icon else R.drawable.play_song_icon),
+                        painter = painterResource(if (musicService.isplaying.value) R.drawable.pause_song_icon else R.drawable.play_song_icon),
                         contentDescription = if (isPlaying.value) "Pause" else "Play",
                         tint = Color.Black
                     )
                 }
 
-                IconButton(onClick = { /* TODO: Implement next track action */ }) {
+                IconButton(onClick = {
+                    val intent = Intent(context, SongPlayerService::class.java).apply {
+                        action = SongPlayerService.Actions.NEXT.toString()
+                    }
+                    context.startService(intent)
+                }) {
                     Icon(
                         painter= painterResource(id = R.drawable.next_song_icon),
                         contentDescription = "Next Track",

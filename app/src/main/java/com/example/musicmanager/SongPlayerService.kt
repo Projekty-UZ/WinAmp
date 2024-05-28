@@ -15,15 +15,20 @@ import android.os.IBinder
 import android.widget.RemoteViews
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.core.app.NotificationCompat
+import androidx.lifecycle.LiveData
 import com.example.musicmanager.database.models.Song
 
 class SongPlayerService : Service() {
-    private var mediaPlayer: MediaPlayer? = null
+    var mediaPlayer: MediaPlayer? = null
     private val binder = SongPlayerBinder()
     var isplaying = mutableStateOf(false)
     var songs = mutableListOf<Song>()
     var currentSong = mutableStateOf(Song(0,"","",0,""))
+    var currentSongIndex = mutableStateOf(0)
+    var songQueue = mutableListOf<Song>()
+    var songStack = mutableListOf<Song>()
 
     inner class SongPlayerBinder : Binder() {
         fun getService(): SongPlayerService = this@SongPlayerService
@@ -50,30 +55,86 @@ class SongPlayerService : Service() {
             Actions.PREVIOUS.toString() -> previousSong()
             Actions.STOP.toString() -> stopSong()
             Actions.START_SONG.toString() -> startSong(intent)
+            Actions.STOP_SERVICE.toString() -> stopSelf()
         }
 
         return START_STICKY
     }
-    fun playSong(){
+
+    private fun playSong(){
         mediaPlayer?.start()
+        isplaying.value = true
     }
-    fun pauseSong(){
+    private fun pauseSong(){
         mediaPlayer?.pause()
+        isplaying.value = false
     }
-    fun nextSong(){}
-    fun previousSong(){}
-    fun stopSong(){
+    private fun nextSong(){
+        mediaPlayer?.stop()
+        mediaPlayer?.release()
+
+        //dodaj na stos ostatnio odtwarzanych piosenek
+        songStack.add(currentSong.value)
+
+        val newindex = (currentSongIndex.value + 1) % songs.size
+        currentSongIndex.value = newindex
+        currentSong.value = songs[currentSongIndex.value]
+
+        mediaPlayer = MediaPlayer().apply {
+            setDataSource(currentSong.value.pathToFile)
+            prepare()
+            start()
+            isplaying.value = true
+        }
+    }
+    private fun previousSong() {
+        mediaPlayer?.stop()
+        mediaPlayer?.release()
+
+        if (songStack.isNotEmpty()) {
+            currentSong.value = songStack.removeAt(songStack.size - 1)
+            currentSongIndex.value = songs.indexOf(currentSong.value)
+
+        }
+        else{
+            currentSongIndex.value = (0 until songs.size).random()
+            currentSong.value = songs[currentSongIndex.value]
+        }
+        mediaPlayer = MediaPlayer().apply {
+            setDataSource(currentSong.value.pathToFile)
+            prepare()
+            start()
+            isplaying.value = true
+        }
+    }
+    private fun stopSong(){
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
         isplaying.value = false
     }
-    fun startSong(intent: Intent){
+    private fun startSong(intent: Intent){
         mediaPlayer?.stop()
         mediaPlayer?.release()
-        songs.clear()
-        songs.add(Song(intent.getIntExtra("id",0),intent.getStringExtra("title")!!,intent.getStringExtra("artist")!!,intent.getIntExtra("duration",0),intent.getStringExtra("pathToFile")!!))
-        currentSong.value = songs[0]
+        if(currentSong.value.id != 0) {
+            songStack.add(currentSong.value)
+        }
+
+        if(songQueue.isNotEmpty()){
+            currentSong.value = songQueue.removeAt(0)
+            currentSongIndex.value = songs.indexOf(currentSong.value)
+
+            mediaPlayer = MediaPlayer().apply {
+                setDataSource(currentSong.value.pathToFile)
+                prepare()
+                start()
+                isplaying.value = true
+            }
+        }
+
+        currentSong.value = Song(intent.getIntExtra("id",0),intent.getStringExtra("title")!!,intent.getStringExtra("artist")!!,intent.getIntExtra("duration",0),intent.getStringExtra("pathToFile")!!)
+        currentSongIndex.value = songs.indexOf(currentSong.value)
+
         val musicFilePath = intent.getStringExtra("pathToFile")
         mediaPlayer = MediaPlayer().apply {
             setDataSource(musicFilePath)
@@ -84,11 +145,11 @@ class SongPlayerService : Service() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
         isplaying.value = false
+        super.onDestroy()
     }
 
     @SuppressLint("ResourceAsColor")
@@ -140,9 +201,8 @@ class SongPlayerService : Service() {
         PLAY,
         PAUSE,
         NEXT,
-        PREVIOUS
+        PREVIOUS,
+        STOP_SERVICE
     }
-
 }
-
 

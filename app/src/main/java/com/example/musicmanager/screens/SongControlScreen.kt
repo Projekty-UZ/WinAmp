@@ -22,6 +22,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.currentRecomposeScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -58,18 +59,19 @@ fun SongControlScreen() {
     val musicService = remember { mutableStateOf<SongPlayerService?>(null) }
     var progress by remember { mutableFloatStateOf(0.0f) }
     var progressString by remember { mutableStateOf("00:00") }
-    val coroutineScope = rememberCoroutineScope()
     var changingValue by remember { mutableStateOf(false) }
 
-    coroutineScope.launch {
+    LaunchedEffect(musicService) {
         while (true) {
-            if (musicService.value != null && musicService.value!!.mediaPlayer != null && !changingValue){
-                progress = musicService.value!!.mediaPlayer!!.currentPosition.toFloat() / musicService.value!!.mediaPlayer!!.duration.toFloat()
-                progressString = formatTime(musicService.value!!.mediaPlayer!!.currentPosition)
+            val mediaPlayer = musicService.value?.mediaPlayer
+            if (mediaPlayer != null && !changingValue) {
+                progress = mediaPlayer.currentPosition.toFloat() / mediaPlayer.duration.toFloat()
+                progressString = formatTime(mediaPlayer.currentPosition)
             }
             delay(1000)
         }
     }
+
 
 
     // Connect to the SongPlayerService

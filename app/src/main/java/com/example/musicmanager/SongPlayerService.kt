@@ -85,6 +85,7 @@ class SongPlayerService : Service() {
             prepare()
             start()
             isplaying.value = true
+            setOnCompletionListener { nextSong() }
         }
     }
     private fun previousSong() {
@@ -105,6 +106,7 @@ class SongPlayerService : Service() {
             prepare()
             start()
             isplaying.value = true
+            setOnCompletionListener { nextSong() }
         }
     }
     private fun stopSong(){
@@ -123,24 +125,17 @@ class SongPlayerService : Service() {
         if(songQueue.isNotEmpty()){
             currentSong.value = songQueue.removeAt(0)
             currentSongIndex.value = songs.indexOf(currentSong.value)
-
-            mediaPlayer = MediaPlayer().apply {
-                setDataSource(currentSong.value.pathToFile)
-                prepare()
-                start()
-                isplaying.value = true
-            }
+        }else {
+            currentSong.value = Song(intent.getIntExtra("id",0),intent.getStringExtra("title")!!,intent.getStringExtra("artist")!!,intent.getIntExtra("duration",0),intent.getStringExtra("pathToFile")!!)
+            currentSongIndex.value = songs.indexOf(currentSong.value)
         }
 
-        currentSong.value = Song(intent.getIntExtra("id",0),intent.getStringExtra("title")!!,intent.getStringExtra("artist")!!,intent.getIntExtra("duration",0),intent.getStringExtra("pathToFile")!!)
-        currentSongIndex.value = songs.indexOf(currentSong.value)
-
-        val musicFilePath = intent.getStringExtra("pathToFile")
         mediaPlayer = MediaPlayer().apply {
-            setDataSource(musicFilePath)
+            setDataSource(currentSong.value.pathToFile)
             prepare()
             start()
             isplaying.value = true
+            setOnCompletionListener { nextSong() }
         }
     }
 

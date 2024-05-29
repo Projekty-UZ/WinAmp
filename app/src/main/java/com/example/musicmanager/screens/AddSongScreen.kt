@@ -111,6 +111,8 @@ fun python_script_button(module:PyObject, yt_link:String, context : Context, add
         else{
             databaseViewModel.viewModelScope.launch(Dispatchers.Main) {
                 Toast.makeText(context, "Download Failed", Toast.LENGTH_SHORT).show()
+                addSongScreenViewModel.loading.value = false
+                addSongScreenViewModel.progress.floatValue = 0f
             }
         }
     }else{

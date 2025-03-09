@@ -1,6 +1,5 @@
 package com.example.musicmanager
 
-import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -8,16 +7,16 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.media.MediaPlayer
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
-import android.widget.RemoteViews
+import android.support.v4.media.session.MediaSessionCompat
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.core.app.NotificationCompat
-import androidx.lifecycle.LiveData
 import com.example.musicmanager.database.models.Song
 
 class SongPlayerService : Service() {
@@ -30,22 +29,43 @@ class SongPlayerService : Service() {
     var songQueue = mutableListOf<Song>()
     var songStack = mutableListOf<Song>()
 
+    companion object {
+        const val ACTION_UPDATE_STATE = "com.example.music.UPDATE_STATE"
+        const val EXTRA_IS_PLAYING = "isPlaying"
+        const val EXTRA_CURRENT_SONG = "currentSong"
+        const val EXTRA_ARTIST = "artist"
+    }
+
+    // Example method to broadcast state changes
+    private fun broadcastState(title: String? = null, artist: String? = null) {
+        val intent = Intent(ACTION_UPDATE_STATE).apply {
+            putExtra(EXTRA_IS_PLAYING, isplaying.value)
+            putExtra(EXTRA_CURRENT_SONG, title ?: currentSong.value.title)
+            putExtra(EXTRA_ARTIST, artist ?: currentSong.value.artist)
+        }
+        sendBroadcast(intent)
+    }
+
+    // Call this method whenever the state changes
+
     inner class SongPlayerBinder : Binder() {
         fun getService(): SongPlayerService = this@SongPlayerService
 
     }
     override fun onBind(intent: Intent?): IBinder {
+        broadcastState()
         return binder
     }
     override fun onUnbind(intent: Intent?): Boolean {
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
+        broadcastState("Unknown Song", "Unknown Artist")
         return super.onUnbind(intent)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val notification = buildNotification(intent)
+        val notification = buildNotification(currentSong.value.title, currentSong.value.artist)
         startForeground(1, notification)
 
         when(intent?.action){
@@ -61,13 +81,21 @@ class SongPlayerService : Service() {
         return START_STICKY
     }
 
+
     private fun playSong(){
         mediaPlayer?.start()
         isplaying.value = true
+        Log.d("SongPlayerService", "Playing song ${isplaying.value}")
+        broadcastState()
+        updateNotification()
     }
     private fun pauseSong(){
         mediaPlayer?.pause()
         isplaying.value = false
+        Log.d("SongPlayerService", "Playing song ${isplaying.value}")
+        broadcastState()
+        updateNotification()
+
     }
     private fun nextSong(){
         mediaPlayer?.stop()
@@ -87,6 +115,8 @@ class SongPlayerService : Service() {
             isplaying.value = true
             setOnCompletionListener { nextSong() }
         }
+        broadcastState()
+        updateNotification()
     }
     private fun previousSong() {
         mediaPlayer?.stop()
@@ -108,25 +138,35 @@ class SongPlayerService : Service() {
             isplaying.value = true
             setOnCompletionListener { nextSong() }
         }
+        broadcastState()
+        updateNotification()
     }
     private fun stopSong(){
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
         isplaying.value = false
+        broadcastState("Unknown Song", "Unknown Artist")
     }
-    private fun startSong(intent: Intent){
+    private fun startSong(intent: Intent) {
         mediaPlayer?.stop()
         mediaPlayer?.release()
-        if(currentSong.value.id != 0) {
+
+        if (currentSong.value.id != 0) {
             songStack.add(currentSong.value)
         }
 
-        if(songQueue.isNotEmpty()){
+        if (songQueue.isNotEmpty()) {
             currentSong.value = songQueue.removeAt(0)
             currentSongIndex.value = songs.indexOf(currentSong.value)
-        }else {
-            currentSong.value = Song(intent.getIntExtra("id",0),intent.getStringExtra("title")!!,intent.getStringExtra("artist")!!,intent.getIntExtra("duration",0),intent.getStringExtra("pathToFile")!!)
+        } else {
+            currentSong.value = Song(
+                intent.getIntExtra("id", 0),
+                intent.getStringExtra("title")!!,
+                intent.getStringExtra("artist")!!,
+                intent.getIntExtra("duration", 0),
+                intent.getStringExtra("pathToFile")!!
+            )
             currentSongIndex.value = songs.indexOf(currentSong.value)
         }
 
@@ -137,6 +177,8 @@ class SongPlayerService : Service() {
             isplaying.value = true
             setOnCompletionListener { nextSong() }
         }
+        broadcastState()
+        updateNotification()
     }
 
     override fun onDestroy() {
@@ -147,26 +189,106 @@ class SongPlayerService : Service() {
         super.onDestroy()
     }
 
-    @SuppressLint("ResourceAsColor")
-    private fun buildNotification(intent: Intent?): Notification {
+    private fun updateNotification() {
+        val notification = buildNotification(currentSong.value.title, currentSong.value.artist)
+        startForeground(1, notification)
+    }
+
+    // update notification every second
+
+
+
+    private fun buildNotification(title: String?, artist: String?): Notification {
+        // Create notification channel for Android O and above
         val channelId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Create a notification channel for Android 8.0 and above
-            createNotificationChannel("SongPlayerChannel", "My Song Player Service Service")
+            createNotificationChannel("SongPlayerChannel", "My Song Player Service")
         } else {
-            // If earlier version, channel ID is not used
             ""
         }
 
+        // Create actions for play/pause, previous, and next
+        val playPauseAction = NotificationCompat.Action(
+            if (isplaying.value == true) R.drawable.pause_song_icon else R.drawable.play_song_icon,
+            if (isplaying.value == true) "Pause" else "Play",
+            createPlayPausePendingIntent()
+        )
 
-        val notificationLayout = RemoteViews(packageName, R.layout.playback_notification)
-        notificationLayout.setTextViewText(R.id.text_artist,  intent?.getStringExtra("artist"))
-        notificationLayout.setTextViewText(R.id.text_song_title,"Playing: " + intent?.getStringExtra("title"))
-        // Build the notification using NotificationCompat.Builder for backward compatibility
-        val builder = NotificationCompat.Builder(this, channelId)
-        builder.setSmallIcon(R.mipmap.ic_launcher)
-            .setColor(R.color.purple_200)// Set the small icon for the notification
-            .setContent(notificationLayout)
-        return builder.build()                             // Build and return the notification
+        val previousAction = NotificationCompat.Action(
+            R.drawable.previous_song_icon,
+            "Previous",
+            createActionPendingIntent(Actions.PREVIOUS)
+        )
+
+        val nextAction = NotificationCompat.Action(
+            R.drawable.next_song_icon,
+            "Next",
+            createActionPendingIntent(Actions.NEXT)
+        )
+        val mediaSession = MediaSessionCompat(this, "SongPlayerService")
+        val largeIconBitmap = BitmapFactory.decodeResource(resources, R.drawable.ic_launcher_background)
+
+        // Build the notification
+        return NotificationCompat.Builder(this, channelId).apply {
+            setSmallIcon(R.drawable.ic_launcher_foreground)
+            setContentTitle(title)
+            setContentText(artist)
+            setLargeIcon(largeIconBitmap) // Replace with your large icon logic
+            setStyle(
+                androidx.media.app.NotificationCompat.MediaStyle()
+                    .setShowActionsInCompactView(0, 1, 2) // Show play/pause, previous, and next in compact view
+                    .setMediaSession(mediaSession.sessionToken)
+            )
+            addAction(previousAction)
+            addAction(playPauseAction)
+            addAction(nextAction)
+            setPriority(NotificationCompat.PRIORITY_HIGH)
+            setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            setOngoing(true) // Make the notification non-removable
+            setContentIntent(createNotificationPendingIntent())
+        }.build()
+    }
+
+    private fun createPlayPausePendingIntent(): PendingIntent {
+        val intent = Intent(this, SongPlayerService::class.java).apply {
+            action = if (isplaying.value == true) Actions.PAUSE.toString() else Actions.PLAY.toString()
+        }
+        return PendingIntent.getService(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    /**
+     * Creates a PendingIntent for a specific action (e.g., PREVIOUS, NEXT).
+     */
+    private fun createActionPendingIntent(action: Actions): PendingIntent {
+        val intent = Intent(this, SongPlayerService::class.java).apply {
+            this.action = action.toString()
+        }
+        return PendingIntent.getService(
+            this,
+            action.ordinal, // Use action ordinal as request code to ensure unique PendingIntents
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    /**
+     * Creates a PendingIntent for the notification content (to open the app).
+     */
+    private fun createNotificationPendingIntent(): PendingIntent {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("NAVIGATE_TO_SONG_CONTROL", true) // Add a flag to indicate navigation
+        }
+        return PendingIntent.getActivity(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -200,4 +322,6 @@ class SongPlayerService : Service() {
         STOP_SERVICE
     }
 }
+
+
 

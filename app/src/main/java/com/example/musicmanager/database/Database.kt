@@ -8,21 +8,25 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.musicmanager.database.dao.AlbumDao
 import com.example.musicmanager.database.dao.SongAlbumCrossDao
 import com.example.musicmanager.database.dao.SongDao
+import com.example.musicmanager.database.dao.StepCountDao
+import com.example.musicmanager.database.migrations.MIGRATION_1_2
 import com.example.musicmanager.database.models.Album
 import com.example.musicmanager.database.models.Song
 import com.example.musicmanager.database.models.SongAlbumCross
+import com.example.musicmanager.database.models.StepCount
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-@Database(entities = [Album::class, Song::class, SongAlbumCross::class], version = 1, exportSchema = false)
+@Database(entities = [Album::class, Song::class, SongAlbumCross::class, StepCount::class], version = 2, exportSchema = false)
 abstract  class AppDatabase: RoomDatabase(){
     abstract fun albumDao(): AlbumDao
     abstract fun songDao(): SongDao
     abstract fun songAlbumCrossDao(): SongAlbumCrossDao
+    abstract fun stepCountDao(): StepCountDao
     companion object{
         @Volatile
         private var INSTANCE: AppDatabase? = null
-        fun getDatabase(context: Context,scope: CoroutineScope): AppDatabase{
+        fun getDatabase(context: Context): AppDatabase{
             //TODO delete it later
             //context.deleteDatabase("music_manager_database")
             return INSTANCE ?: synchronized(this){
@@ -30,7 +34,9 @@ abstract  class AppDatabase: RoomDatabase(){
                     context.applicationContext,
                     AppDatabase::class.java,
                     "music_manager_database"
-                ).build()
+                )
+                .addMigrations(MIGRATION_1_2)
+                .build()
                 INSTANCE = instance
                 return instance
             }

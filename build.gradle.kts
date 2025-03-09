@@ -4,5 +4,5 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android) apply false
     alias(libs.plugins.chaquopy) apply false
     alias(libs.plugins.ksp) apply false
-
+    alias(libs.plugins.secrets) apply false
 }

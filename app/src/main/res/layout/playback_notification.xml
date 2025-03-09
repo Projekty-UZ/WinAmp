@@ -1,22 +1,53 @@
-<?xml version="1.0" encoding="utf-8"?>
+<!-- res/layout/custom_notification.xml -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:padding="8dp">
 
-    <!-- Song Title and Artist -->
-    <TextView
-        android:id="@+id/text_song_title"
+    <!-- Song Icon and Combined Title/Artist -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="16sp"
-        android:textColor="@color/white"/>
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
 
-    <TextView
-        android:id="@+id/text_artist"
+        <!-- Combined Title and Artist with Marquee Scrolling -->
+        <TextView
+            android:id="@+id/title_artist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:textSize="18sp" />
+    </LinearLayout>
+
+    <!-- Playback Controls (Buttons) -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="14sp"
-        android:textColor="@color/white"/>
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="8dp">
 
+        <ImageButton
+            android:id="@+id/prev"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/previous_song_icon"
+            android:background="@android:color/transparent" />
+
+        <ImageButton
+            android:id="@+id/play_pause"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/pause_song_icon"
+            android:background="@android:color/transparent" />
+
+        <ImageButton
+            android:id="@+id/next"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/next_song_icon"
+            android:background="@android:color/transparent" />
+    </LinearLayout>
 </LinearLayout>

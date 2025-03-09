@@ -12,10 +12,12 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -30,12 +32,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.musicmanager.R
 
 @Composable
-fun AddSongScreen() {
+fun AddSongScreen(yt_link: String) {
     val databaseViewModel = LocalDatabaseViewModel.current
     val coroutineScope = rememberCoroutineScope()
+
     val addSongScreenViewModel: AddSongScreenViewModel = viewModel()
+    LaunchedEffect(Unit) {
+        if(yt_link != "empty"){
+            addSongScreenViewModel.yt_link.value = "https://www.youtube.com/watch?v=$yt_link"
+        }
+    }
     val context = LocalContext.current
     if(!Python.isStarted()) {
         Python.start(AndroidPlatform(context))
@@ -52,7 +61,9 @@ fun AddSongScreen() {
             TextField(
                 value = addSongScreenViewModel.yt_link.value,
                 onValueChange = { addSongScreenViewModel.yt_link.value = it},
-                placeholder = { Text("Enter YouTube Link") },
+                placeholder = {
+                        Text(stringResource(id = R.string.link_placeholder))
+                },
                 modifier = Modifier.width(300.dp),
                 singleLine = true,
                 )
@@ -85,7 +96,7 @@ fun AddSongScreen() {
                     }
                 },
                 ) {
-                Text("Download Song")
+                Text(stringResource(id = R.string.download_song))
             }
             if(addSongScreenViewModel.loading.value){
                 LinearProgressIndicator(
@@ -103,21 +114,21 @@ fun python_script_button(module:PyObject, yt_link:String, context : Context, add
         val returnTable = module.callAttr("get_message").asList().map { it.toString() }
         if(returnTable[0] == "Downloaded") {
             databaseViewModel.viewModelScope.launch(Dispatchers.Main) {
-                Toast.makeText(context, "Successful Download", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.download_success), Toast.LENGTH_SHORT).show()
             }
             val song = Song(id=0,title=returnTable[1],artist=returnTable[2],duration=returnTable[3].toInt(),pathToFile=returnTable[4])
             databaseViewModel.addSong(song)
         }
         else{
             databaseViewModel.viewModelScope.launch(Dispatchers.Main) {
-                Toast.makeText(context, "Download Failed", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.download_success), Toast.LENGTH_SHORT).show()
                 addSongScreenViewModel.loading.value = false
                 addSongScreenViewModel.progress.floatValue = 0f
             }
         }
     }else{
         databaseViewModel.viewModelScope.launch(Dispatchers.Main) {
-            Toast.makeText(context, "Enter Valid YT Link", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.download_invalid_link), Toast.LENGTH_SHORT).show()
             addSongScreenViewModel.loading.value = false
             addSongScreenViewModel.progress.floatValue = 0f
         }

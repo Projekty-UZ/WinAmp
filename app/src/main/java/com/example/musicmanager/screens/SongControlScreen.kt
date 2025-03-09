@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,10 +41,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import com.example.musicmanager.BuildConfig
 import com.example.musicmanager.R
 import com.example.musicmanager.SongPlayerService
 import com.example.musicmanager.ui.theme.Purple40
 import com.example.musicmanager.ui.theme.Purple80
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -160,10 +166,10 @@ fun SongControlScreen() {
             Row(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 modifier = Modifier.fillMaxWidth()
-            ){
+            ) {
                 Button(
                     onClick = {
-                         if(musicService.value != null){
+                        if (musicService.value != null) {
                             val intent = Intent(context, SongPlayerService::class.java).apply {
                                 action = SongPlayerService.Actions.PREVIOUS.toString()
                             }
@@ -179,8 +185,8 @@ fun SongControlScreen() {
                 }
                 Button(
                     onClick = {
-                        if(musicService.value != null){
-                            if(musicService.value!!.isplaying.value) {
+                        if (musicService.value != null) {
+                            if (musicService.value!!.isplaying.value) {
                                 val intent = Intent(context, SongPlayerService::class.java).apply {
                                     action = SongPlayerService.Actions.PAUSE.toString()
                                 }
@@ -204,7 +210,7 @@ fun SongControlScreen() {
                 }
                 Button(
                     onClick = {
-                         if(musicService.value != null){
+                        if (musicService.value != null) {
                             val intent = Intent(context, SongPlayerService::class.java).apply {
                                 action = SongPlayerService.Actions.NEXT.toString()
                             }
@@ -219,6 +225,7 @@ fun SongControlScreen() {
                     )
                 }
             }
+            BannerAd("ca-app-pub-3940256099942544/6300978111")
         }
     }
 
@@ -229,9 +236,37 @@ fun formatTime(milliseconds: Int): String {
     return String.format("%02d:%02d", minutes, seconds)
 }
 
+@Composable
+fun BannerAd(adUnitId: String){
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center
+    ) {
+        AndroidView(
+            factory = { context ->
+                AdView(context).apply {
+                    setAdSize(AdSize.BANNER)
+                    this.adUnitId = adUnitId
+                    loadAd(AdRequest.Builder().build())
+                }
+            },
+            update = { adView ->
+                adView.loadAd(AdRequest.Builder().build())
+            },
+            modifier = Modifier.size(320.dp, 50.dp)
+        )
+    }
+}
+
 
 @Preview
 @Composable
 fun SongControlScreenPreview() {
     SongControlScreen()
+}
+
+@Preview
+@Composable
+fun BannerAdPreview() {
+    BannerAd(BuildConfig.ADMOB_BANNER_ID)
 }

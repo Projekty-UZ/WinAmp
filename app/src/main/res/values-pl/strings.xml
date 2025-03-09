@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MusicManager</string>
+    <string name="playlist_toast">Linki do playlist nie są obsługiwane</string>
+    <string name="intent_id_toast">Nie można wyodrębnić id filmu</string>
+    <string name="not_yt_link_toast">Proszę udostępnić prawidłowy link YouTube</string>
+    <string name="songs">Piosenki</string>
+    <string name="playlists">Playlisty</string>
+    <string name="add_song">Dodaj</string>
+    <string name="link_placeholder">Wprowadź link YouTube</string>
+    <string name="download_song">Pobierz piosenkę</string>
+    <string name="download_success">Pobieranie zakończone sukcesem</string>
+    <string name="download_failed">Pobieranie nie powiodło się</string>
+    <string name="download_invalid_link">Wprowadź prawidłowy link YouTube</string>
+    <string name="no_song_widget">Nie odtwarza się żadna piosenka</string>
+    <string name="step_cunter">Kroki</string>
+    <string name="step_counter_desc">Przeszedłeś tyle podczas słuchania muzyki: %s. To jest twoja odległośc w km: %s</string>
+    <string name="step_counter_reset">Zresetuj licznik</string>
+    <string name="waiting_for_location">Oczekiwanie na lokalizację</string>
+    <string name="location">Lokalizacja: </string>
+    <string name="alert_localization_required">Uprawnienie do lokalizacji wymagane</string>
+    <string name="alert_go_to_settings">Aby korzystać z tej funkcji, musisz przyznać uprawnienie do lokalizacji w ustawieniach aplikacji</string>
+    <string name="alert_settings">Ustawienia</string>
+    <string name="alert_cancel">Anuluj</string>
+    <string name="longitude">Długość geograficzna: %.2f</string>
+    <string name="latitude">Szerokość geograficzna: %.2f</string>
+    <string name="gps">GPS</string>
+    <string name="open_google_maps">Otwórz lokalizację w Google Maps</string>
+</resources>

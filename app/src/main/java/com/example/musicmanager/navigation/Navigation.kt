@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.navArgument
 import com.example.musicmanager.screens.AddSongScreen
 import com.example.musicmanager.screens.AnimatedSplashScreen
+import com.example.musicmanager.screens.AuthScreen
 import com.example.musicmanager.screens.LocationTrackerScreen
 import com.example.musicmanager.screens.PlaylistScreen
 import com.example.musicmanager.screens.SongControlScreen
@@ -58,6 +59,9 @@ fun Navigation(navController: NavHostController){
         }
         composable(Screens.LocationTrackerScreen.route) {
             LocationTrackerScreen()
+        }
+        composable(Screens.AuthScreen.route) {
+            AuthScreen()
         }
     }
 }

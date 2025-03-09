@@ -1,23 +1,34 @@
 package com.example.musicmanager
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.BitmapFactory
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.media.MediaPlayer
+import android.media.session.MediaSession
+import android.media.session.PlaybackState
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.support.v4.media.session.MediaSessionCompat
+import android.telephony.TelephonyManager
 import android.util.Log
+import android.view.KeyEvent
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.app.NotificationCompat
 import com.example.musicmanager.database.models.Song
+import com.example.musicmanager.navigation.NavigationEventHolder
+import com.example.musicmanager.navigation.Screens
 
 class SongPlayerService : Service() {
     var mediaPlayer: MediaPlayer? = null
@@ -28,12 +39,84 @@ class SongPlayerService : Service() {
     var currentSongIndex = mutableStateOf(0)
     var songQueue = mutableListOf<Song>()
     var songStack = mutableListOf<Song>()
+    private lateinit var audioManager: AudioManager
+    private lateinit var phoneCallReceiver: PhoneCallReceiver
+    private lateinit var mediaSession: MediaSession
 
     companion object {
         const val ACTION_UPDATE_STATE = "com.example.music.UPDATE_STATE"
         const val EXTRA_IS_PLAYING = "isPlaying"
         const val EXTRA_CURRENT_SONG = "currentSong"
         const val EXTRA_ARTIST = "artist"
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+        phoneCallReceiver = PhoneCallReceiver()
+        registerReceiver(phoneCallReceiver, IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED))
+
+        mediaSession = MediaSession(this, "SongPlayerService")
+        mediaSession.setMediaButtonReceiver(null)
+        mediaSession.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS or MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS)
+        mediaSession.setCallback(object : MediaSession.Callback() {
+
+
+            override fun onMediaButtonEvent(mediaButtonIntent: Intent): Boolean {
+                val keyEvent = mediaButtonIntent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT)
+                keyEvent?.let {
+                    Log.d("SongPlayerService", "Media button pressed: ${it.keyCode} , ${it.action}")
+                    if(it.action == KeyEvent.ACTION_DOWN) {
+                        when (it.keyCode) {
+                            KeyEvent.KEYCODE_MEDIA_PLAY -> playSong()
+                            KeyEvent.KEYCODE_MEDIA_PAUSE -> pauseSong()
+                            KeyEvent.KEYCODE_MEDIA_NEXT -> nextSong()
+                            KeyEvent.KEYCODE_MEDIA_PREVIOUS -> previousSong()
+                        }
+                    }
+                }
+                return super.onMediaButtonEvent(mediaButtonIntent)
+            }
+        })
+
+        // Activate the MediaSession
+        mediaSession.isActive = true
+    }
+
+    @SuppressLint("NewApi")
+    val audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+        .setOnAudioFocusChangeListener { focusChange ->
+            when (focusChange) {
+                AudioManager.AUDIOFOCUS_LOSS -> {
+                    // Another app took permanent audio focus (e.g., started playing media)
+                    pauseSong()
+                }
+                AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                    // Another app took temporary audio focus (e.g., during a phone call)
+                    pauseSong()
+                }
+                AudioManager.AUDIOFOCUS_GAIN -> {
+                    // Regained audio focus (e.g., after a phone call ends)
+                    playSong()
+                }
+            }
+        }
+        .build()
+
+    //stop playing for phone calls
+    class PhoneCallReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == TelephonyManager.ACTION_PHONE_STATE_CHANGED) {
+                val state = intent.getStringExtra(TelephonyManager.EXTRA_STATE)
+                if (state == TelephonyManager.EXTRA_STATE_RINGING || state == TelephonyManager.EXTRA_STATE_OFFHOOK) {
+                    // Phone is ringing or in a call
+                    SongPlayerService().pauseSong()
+                } else if (state == TelephonyManager.EXTRA_STATE_IDLE) {
+                    // Call ended
+                    SongPlayerService().playSong()
+                }
+            }
+        }
     }
 
     // Example method to broadcast state changes
@@ -50,8 +133,8 @@ class SongPlayerService : Service() {
 
     inner class SongPlayerBinder : Binder() {
         fun getService(): SongPlayerService = this@SongPlayerService
-
     }
+    @SuppressLint("InlinedApi")
     override fun onBind(intent: Intent?): IBinder {
         broadcastState()
         return binder
@@ -64,21 +147,48 @@ class SongPlayerService : Service() {
         return super.onUnbind(intent)
     }
 
+    @SuppressLint("NewApi")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val notification = buildNotification(currentSong.value.title, currentSong.value.artist)
         startForeground(1, notification)
 
         when(intent?.action){
-            Actions.PLAY.toString() -> playSong()
+            Actions.PLAY.toString() -> {
+                val result = audioManager.requestAudioFocus(audioFocusRequest)
+                if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                    // Start playing media
+                    playSong()
+                }
+            }
             Actions.PAUSE.toString() -> pauseSong()
             Actions.NEXT.toString() -> nextSong()
             Actions.PREVIOUS.toString() -> previousSong()
             Actions.STOP.toString() -> stopSong()
-            Actions.START_SONG.toString() -> startSong(intent)
+            Actions.START_SONG.toString() -> {
+                val result = audioManager.requestAudioFocus(audioFocusRequest)
+                if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                    startSong(intent)
+                }else{
+                    NavigationEventHolder.navigateTo(Screens.SongScreen.route)
+                }
+            }
             Actions.STOP_SERVICE.toString() -> stopSelf()
         }
 
         return START_STICKY
+    }
+
+    private fun updatePlaybackState(state: Int) {
+        val playbackState = PlaybackState.Builder()
+            .setState(state, mediaPlayer!!.currentPosition.toLong(), 1f) // State, position, playback speed
+            .setActions(
+                PlaybackState.ACTION_PLAY or
+                        PlaybackState.ACTION_PAUSE or
+                        PlaybackState.ACTION_SKIP_TO_NEXT or
+                        PlaybackState.ACTION_SKIP_TO_PREVIOUS
+            ) // Supported actions
+            .build()
+        mediaSession.setPlaybackState(playbackState)
     }
 
 
@@ -86,6 +196,7 @@ class SongPlayerService : Service() {
         mediaPlayer?.start()
         isplaying.value = true
         Log.d("SongPlayerService", "Playing song ${isplaying.value}")
+        updatePlaybackState(PlaybackState.STATE_PLAYING)
         broadcastState()
         updateNotification()
     }
@@ -93,11 +204,13 @@ class SongPlayerService : Service() {
         mediaPlayer?.pause()
         isplaying.value = false
         Log.d("SongPlayerService", "Playing song ${isplaying.value}")
+        updatePlaybackState(PlaybackState.STATE_PAUSED)
         broadcastState()
         updateNotification()
 
     }
     private fun nextSong(){
+        updatePlaybackState(PlaybackState.STATE_SKIPPING_TO_NEXT)
         mediaPlayer?.stop()
         mediaPlayer?.release()
 
@@ -115,10 +228,12 @@ class SongPlayerService : Service() {
             isplaying.value = true
             setOnCompletionListener { nextSong() }
         }
+        updatePlaybackState(PlaybackState.STATE_PLAYING)
         broadcastState()
         updateNotification()
     }
     private fun previousSong() {
+        updatePlaybackState(PlaybackState.STATE_SKIPPING_TO_PREVIOUS)
         mediaPlayer?.stop()
         mediaPlayer?.release()
 
@@ -138,6 +253,7 @@ class SongPlayerService : Service() {
             isplaying.value = true
             setOnCompletionListener { nextSong() }
         }
+        updatePlaybackState(PlaybackState.STATE_PLAYING)
         broadcastState()
         updateNotification()
     }
@@ -185,7 +301,9 @@ class SongPlayerService : Service() {
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
+        mediaSession.release()
         isplaying.value = false
+        unregisterReceiver(phoneCallReceiver)
         super.onDestroy()
     }
 

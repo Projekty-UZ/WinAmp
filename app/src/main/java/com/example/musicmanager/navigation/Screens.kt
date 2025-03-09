@@ -12,4 +12,5 @@ sealed class Screens (val route: String){
     object SongControlScreen: Screens("song_control")
     object StepCounterScreen: Screens("step_counter")
     object LocationTrackerScreen: Screens("location_tracker")
+    object AuthScreen: Screens("auth")
 }

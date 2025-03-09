@@ -39,12 +39,14 @@ import com.google.android.gms.ads.MobileAds
 
 class MainActivity : ComponentActivity() {
     val databaseViewModel: DatabaseViewModel by viewModels<DatabaseViewModel>{
-        DatabaseViewModelFactory((application as MusicManagerApplication).repository)
+        DatabaseViewModelFactory((application as MusicManagerApplication).repository, (application as MusicManagerApplication).authDataRepository)
     }
     val stepCountViewModel: StepCountViewModel by viewModels<StepCountViewModel>{
         StepCountViewModelFactory((application as MusicManagerApplication).stepCountRepository)
     }
     var musicService: SongPlayerService? = null
+
+    var pendingIntent: Intent? = null
 
     private var isBound = false
 
@@ -77,9 +79,25 @@ class MainActivity : ComponentActivity() {
         Screens.SongControlScreen.route
     )
 
+
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        handleIntent(intent)
+        if(databaseViewModel.userAuthenticated){
+            handleIntent(intent)
+        }else{
+            pendingIntent = intent
+        }
+    }
+
+    private fun handlePendingIntent() {
+        // Check if there is a pending intent
+        if (pendingIntent != null) {
+            // Handle the pending intent
+            handleIntent(pendingIntent!!)
+            // Clear the pending intent
+            pendingIntent = null
+        }
     }
 
     private fun handleIntent(intent: Intent) {
@@ -136,7 +154,15 @@ class MainActivity : ComponentActivity() {
         Intent(this, SongPlayerService::class.java).also { intent ->
             bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
         }
-        handleIntent(intent)
+
+        if(intent != null){
+            pendingIntent = intent
+        }
+
+        databaseViewModel.onAuthenticated = {
+            handlePendingIntent()
+        }
+
         startService(Intent(this, StepCounterService::class.java))
 
         MobileAds.initialize(this){}

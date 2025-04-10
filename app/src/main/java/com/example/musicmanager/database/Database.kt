@@ -30,7 +30,7 @@ abstract  class AppDatabase: RoomDatabase(){
     companion object{
         @Volatile
         private var INSTANCE: AppDatabase? = null
-        fun getDatabase(context: Context): AppDatabase{
+        fun getDatabase(context: Context,scope: CoroutineScope): AppDatabase{
             //TODO delete it later
             //context.deleteDatabase("music_manager_database")
             return INSTANCE ?: synchronized(this){
@@ -41,10 +41,30 @@ abstract  class AppDatabase: RoomDatabase(){
                 )
                 .addMigrations(MIGRATION_1_2)
                 .addMigrations(MIGRATION_2_3)
+                .addCallback(AppDatabaseCallback(scope))
                 .build()
                 INSTANCE = instance
                 return instance
             }
         }
+        private class AppDatabaseCallback(
+            private val scope: CoroutineScope
+        ) : RoomDatabase.Callback() {
+            override fun onCreate(db: SupportSQLiteDatabase) {
+                super.onCreate(db)
+                INSTANCE?.let { database ->
+                    scope.launch {
+                        populateInitialData(database.stepCountDao())
+                    }
+                }
+            }
+        }
+
+        suspend fun populateInitialData(stepCountDao: StepCountDao) {
+            // Insert the first entry for the StepCount table
+            stepCountDao.insert(StepCount(id = 1, totalSteps = 0))
+        }
     }
+
+
 }

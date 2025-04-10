@@ -12,7 +12,7 @@ import kotlinx.coroutines.SupervisorJob
 
 class MusicManagerApplication: Application(){
     val applicationScope = CoroutineScope(SupervisorJob())
-    val database by lazy { AppDatabase.getDatabase(this) }
+    val database by lazy { AppDatabase.getDatabase(this,applicationScope) }
     val repository by lazy { Repository(database.albumDao(),database.songDao(),database.songAlbumCrossDao()) }
     val authDataRepository by lazy { AuthDataRepository(database.authDataDao()) }
     val stepCountRepository by lazy { StepCountRepository(database.stepCountDao()) }

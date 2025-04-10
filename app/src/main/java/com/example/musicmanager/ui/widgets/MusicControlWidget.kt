@@ -152,11 +152,11 @@ class MusicControlWidget : GlanceAppWidget() {
 
                     // Play/Pause Button
                     Image(
-                        provider = ImageProvider(if(isPlaying) R.drawable.pause_song_icon else R.drawable.play_song_icon),
+                        provider = ImageProvider(if (isPlaying) R.drawable.pause_song_icon else R.drawable.play_song_icon),
                         contentDescription = "Play/Pause",
                         modifier = GlanceModifier
                             .size(48.dp)
-                            .clickable(if(isPlaying) actionRunCallback<PlayAction>() else actionRunCallback<PauseAction>()),
+                            .clickable(actionRunCallback<PlayPauseAction>()),
                         colorFilter = ColorFilter.tint(ColorProvider(R.color.white))
                     )
 
@@ -176,21 +176,14 @@ class MusicControlWidget : GlanceAppWidget() {
 
 }
 
-class PlayAction : ActionCallback {
+class PlayPauseAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        // Handle play/pause action
-        val intent = Intent(context, SongPlayerService::class.java).apply {
-            action = SongPlayerService.Actions.PLAY.toString()
-        }
-        context.startService(intent)
-    }
-}
+        val preferences = context.dataStore.data.first()
+        val isPlaying = preferences[PreferencesKeys.IS_PLAYING] ?: false
 
-class PauseAction : ActionCallback {
-    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        // Handle play/pause action
         val intent = Intent(context, SongPlayerService::class.java).apply {
-            action = SongPlayerService.Actions.PAUSE.toString()
+            action = if (isPlaying) SongPlayerService.Actions.PAUSE.toString()
+            else SongPlayerService.Actions.PLAY.toString()
         }
         context.startService(intent)
     }

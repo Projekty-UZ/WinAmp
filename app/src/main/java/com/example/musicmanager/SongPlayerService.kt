@@ -29,6 +29,8 @@ import androidx.core.app.NotificationCompat
 import com.example.musicmanager.database.models.Song
 import com.example.musicmanager.navigation.NavigationEventHolder
 import com.example.musicmanager.navigation.Screens
+import kotlin.or
+import kotlin.text.toLong
 
 class SongPlayerService : Service() {
     var mediaPlayer: MediaPlayer? = null
@@ -179,16 +181,18 @@ class SongPlayerService : Service() {
     }
 
     private fun updatePlaybackState(state: Int) {
-        val playbackState = PlaybackState.Builder()
-            .setState(state, mediaPlayer!!.currentPosition.toLong(), 1f) // State, position, playback speed
-            .setActions(
-                PlaybackState.ACTION_PLAY or
-                        PlaybackState.ACTION_PAUSE or
-                        PlaybackState.ACTION_SKIP_TO_NEXT or
-                        PlaybackState.ACTION_SKIP_TO_PREVIOUS
-            ) // Supported actions
-            .build()
-        mediaSession.setPlaybackState(playbackState)
+        mediaPlayer?.let {
+            val playbackState = PlaybackState.Builder()
+                .setState(state, it.currentPosition.toLong(), 1f) // State, position, playback speed
+                .setActions(
+                    PlaybackState.ACTION_PLAY or
+                            PlaybackState.ACTION_PAUSE or
+                            PlaybackState.ACTION_SKIP_TO_NEXT or
+                            PlaybackState.ACTION_SKIP_TO_PREVIOUS
+                ) // Supported actions
+                .build()
+            mediaSession.setPlaybackState(playbackState)
+        } ?: Log.e("SongPlayerService", "MediaPlayer is null in updatePlaybackState")
     }
 
 

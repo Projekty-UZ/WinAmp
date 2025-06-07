@@ -25,4 +25,12 @@
     <string name="latitude">Latitude: %s</string>
     <string name="gps">GPS</string>
     <string name="open_google_maps">Open location in Google Maps</string>
+    <string name="register_succes">Account created successfully! You can now log in.</string>
+    <string name="login_failed">Login failed:</string>
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="no_account">Don\'t have an account? Create one</string>
+    <string name="already_have_account">Already have an account? Log in</string>
 </resources>

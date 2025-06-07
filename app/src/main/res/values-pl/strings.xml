@@ -26,4 +26,12 @@
     <string name="latitude">Szerokość geograficzna: %.2f</string>
     <string name="gps">GPS</string>
     <string name="open_google_maps">Otwórz lokalizację w Google Maps</string>
+    <string name="register_succes">Konto zostało pomyślnie utworzone! Możesz teraz się zalogować.</string>
+    <string name="login_failed">Logowanie nie powiodło się:</string>
+    <string name="login">Zaloguj się</string>
+    <string name="register">Zarejestruj się</string>
+    <string name="email">E-mail</string>
+    <string name="password">Hasło</string>
+    <string name="no_account">Nie masz konta? Utwórz je</string>
+    <string name="already_have_account">Masz już konto? Zaloguj się</string>
 </resources>

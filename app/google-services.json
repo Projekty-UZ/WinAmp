@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "289902885470",
+    "project_id": "android-9d0b1",
+    "storage_bucket": "android-9d0b1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:289902885470:android:28c04d073e97f16b5312cf",
+        "android_client_info": {
+          "package_name": "com.example.musicmanager"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "289902885470-1b49e5oaugo5n037qj24h46bec33aeoa.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDDysV9cXUVzQF0B9Yrzn1-FgBJUU78ylY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "289902885470-1b49e5oaugo5n037qj24h46bec33aeoa.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

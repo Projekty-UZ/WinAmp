@@ -90,7 +90,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun handlePendingIntent() {
+     fun handlePendingIntent() {
         // Check if there is a pending intent
         if (pendingIntent != null) {
             // Handle the pending intent

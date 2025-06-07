@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.chaquopy)
     alias(libs.plugins.ksp)
     alias(libs.plugins.secrets)
+    alias(libs.plugins.google.services)
 }
 
 
@@ -105,5 +106,6 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
+    implementation(libs.firebase.auth)
     debugImplementation(libs.androidx.ui.test.manifest)
 }

@@ -34,4 +34,6 @@
     <string name="password">Hasło</string>
     <string name="no_account">Nie masz konta? Utwórz je</string>
     <string name="already_have_account">Masz już konto? Zaloguj się</string>
+    <string name="forgot_password">Zapomniałeś hasła?</string>
+    <string name="password_reset_sent">Wysłano link do resetowania hasła na podany adres e-mail</string>
 </resources>

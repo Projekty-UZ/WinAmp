@@ -37,6 +37,7 @@ fun AuthScreen() {
     var successMessage by remember { mutableStateOf<String?>(null) }
     val login_failed = stringResource(R.string.login_failed)
     val register_success = stringResource(R.string.register_succes)
+    var email_sent = stringResource(R.string.password_reset_sent)
 
     AuthForm(
         onLogin = { email, password ->
@@ -68,6 +69,20 @@ fun AuthScreen() {
                     }
                 }
         },
+        onResetPassword = { email ->
+            FirebaseAuth.getInstance().sendPasswordResetEmail(email)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        Log.d("AuthScreen", "Password reset email sent.")
+                        successMessage = email_sent
+                        errorMessage = null
+                    } else {
+                        Log.e("AuthScreen", "Password reset failed: ${task.exception?.message}")
+                        errorMessage = task.exception?.localizedMessage
+                        successMessage = null
+                    }
+                }
+        },
         errorMessage = errorMessage,
         successMessage = successMessage
     )
@@ -77,6 +92,7 @@ fun AuthScreen() {
 fun AuthForm(
     onLogin: (String, String) -> Unit,
     onRegister: (String, String) -> Unit,
+    onResetPassword: (String) -> Unit,
     errorMessage: String? = null,
     successMessage: String? = null
 ) {
@@ -131,6 +147,17 @@ fun AuthForm(
             modifier = Modifier.fillMaxWidth(),
             visualTransformation = PasswordVisualTransformation()
         )
+
+        TextButton(
+            onClick = {
+                if (email.isNotBlank()) {
+                    onResetPassword(email)
+                }
+            },
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text(text = stringResource(id = R.string.forgot_password)) // Dodaj ten string do resources
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 

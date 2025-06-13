@@ -53,20 +53,29 @@ import com.google.android.gms.ads.AdView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+
+/**
+ * Composable function for rendering the Song Control screen.
+ * Provides functionality for controlling song playback, displaying song details, and interacting with a media player service.
+ * Includes a slider for seeking within the song and buttons for playback controls (previous, play/pause, next).
+ * Displays a banner ad at the bottom of the screen.
+ */
 @SuppressLint("CoroutineCreationDuringComposition")
 @Composable
 fun SongControlScreen() {
+    // Gradient background for the screen.
     val brush = Brush.verticalGradient(colorStops = arrayOf(
         Pair(0.0f, Purple80),
         Pair(0.2f, Purple80),
         Pair(1.0f, Purple40)
     ))
-    val context = LocalContext.current
-    val musicService = remember { mutableStateOf<SongPlayerService?>(null) }
-    var progress by remember { mutableFloatStateOf(0.0f) }
-    var progressString by remember { mutableStateOf("00:00") }
-    var changingValue by remember { mutableStateOf(false) }
+    val context = LocalContext.current // Retrieve the current context.
+    val musicService = remember { mutableStateOf<SongPlayerService?>(null) } // State to hold the music service instance.
+    var progress by remember { mutableFloatStateOf(0.0f) } // State for the current progress of the song.
+    var progressString by remember { mutableStateOf("00:00") } // State for the formatted progress time.
+    var changingValue by remember { mutableStateOf(false) } // State to track if the slider value is being changed.
 
+    // Effect to update the progress and formatted time periodically.
     LaunchedEffect(musicService) {
         while (true) {
             val mediaPlayer = musicService.value?.mediaPlayer
@@ -74,40 +83,39 @@ fun SongControlScreen() {
                 progress = mediaPlayer.currentPosition.toFloat() / mediaPlayer.duration.toFloat()
                 progressString = formatTime(mediaPlayer.currentPosition)
             }
-            delay(1000)
+            delay(1000) // Update every second.
         }
     }
 
-
-
-    // Connect to the SongPlayerService
+    // Connect to the SongPlayerService and manage its lifecycle.
     DisposableEffect(Unit) {
         val connection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
                 val binder = service as SongPlayerService.SongPlayerBinder
-                musicService.value = binder.getService()
+                musicService.value = binder.getService() // Retrieve the service instance.
             }
 
             override fun onServiceDisconnected(name: ComponentName?) {
-                musicService.value = null
+                musicService.value = null // Clear the service instance on disconnection.
             }
         }
 
         val intent = Intent(context, SongPlayerService::class.java)
-        context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+        context.bindService(intent, connection, Context.BIND_AUTO_CREATE) // Bind to the service.
 
         onDispose {
-            context.unbindService(connection)
+            context.unbindService(connection) // Unbind the service when the composable is disposed.
         }
     }
 
-
+    // Main layout for the Song Control screen.
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(brush),
+            .background(brush), // Apply the gradient background.
         contentAlignment = Alignment.Center
     ) {
+        // Display the album cover.
         Icon(
             painter = painterResource(id = R.drawable.ic_launcher_foreground),
             contentDescription = "Album Cover",
@@ -115,28 +123,30 @@ fun SongControlScreen() {
             tint = Color.Magenta
         )
         Column {
+            // Display the song title.
             Text(
                 text = musicService.value?.currentSong?.value?.title ?: "Song Title",
                 color = Color.White,
                 style = androidx.compose.ui.text.TextStyle(fontSize = 24.sp),
                 modifier = Modifier.padding(8.dp, 500.dp, 0.dp, 0.dp)
             )
+            // Display the artist name.
             Text(
                 text = musicService.value?.currentSong?.value?.artist ?: "Artist",
                 color = Color.White,
                 style = androidx.compose.ui.text.TextStyle(fontSize = 18.sp),
                 modifier = Modifier.padding(8.dp, 0.dp, 0.dp, 0.dp)
             )
-            Row(
-
-            ) {
+            Row {
+                // Display the current progress time.
                 Text(
                     text = progressString,
                     color = Color.White,
                     style = androidx.compose.ui.text.TextStyle(fontSize = 18.sp),
                     modifier = Modifier.padding(8.dp, 0.dp, 0.dp, 0.dp)
                 )
-                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.weight(1f)) // Spacer for layout adjustment.
+                // Display the total duration of the song.
                 Text(
                     text = formatTime(musicService.value?.mediaPlayer?.duration ?: 0),
                     color = Color.White,
@@ -144,29 +154,32 @@ fun SongControlScreen() {
                     modifier = Modifier.padding(0.dp, 0.dp, 8.dp, 0.dp)
                 )
             }
-            Slider(value = progress,
+            // Slider for seeking within the song.
+            Slider(
+                value = progress,
                 onValueChange = {
-                    changingValue = true
-                    val Intent = Intent(context, SongPlayerService::class.java).apply {
-                        action = SongPlayerService.Actions.PAUSE.toString()
+                    changingValue = true // Indicate that the slider value is being changed.
+                    val intent = Intent(context, SongPlayerService::class.java).apply {
+                        action = SongPlayerService.Actions.PAUSE.toString() // Pause the song during seeking.
                     }
-                    context.startService(Intent)
-                    progress=it
+                    context.startService(intent)
+                    progress = it
                 },
-                onValueChangeFinished ={
-                    changingValue = false
-                    musicService.value?.mediaPlayer?.seekTo((progress * musicService.value?.mediaPlayer?.duration!!).toInt())
-                    val Intent = Intent(context, SongPlayerService::class.java).apply {
-                        action = SongPlayerService.Actions.PLAY.toString()
+                onValueChangeFinished = {
+                    changingValue = false // Indicate that the slider value change is finished.
+                    musicService.value?.mediaPlayer?.seekTo((progress * musicService.value?.mediaPlayer?.duration!!).toInt()) // Seek to the new position.
+                    val intent = Intent(context, SongPlayerService::class.java).apply {
+                        action = SongPlayerService.Actions.PLAY.toString() // Resume playback.
                     }
-                    context.startService(Intent)
-                } ,
+                    context.startService(intent)
+                },
                 modifier = Modifier.padding(8.dp, 0.dp, 8.dp, 0.dp)
             )
             Row(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 modifier = Modifier.fillMaxWidth()
             ) {
+                // Button for playing the previous track.
                 Button(
                     onClick = {
                         if (musicService.value != null) {
@@ -183,6 +196,7 @@ fun SongControlScreen() {
                         tint = Color.White
                     )
                 }
+                // Button for toggling play/pause state.
                 Button(
                     onClick = {
                         if (musicService.value != null) {
@@ -208,6 +222,7 @@ fun SongControlScreen() {
                         )
                     }
                 }
+                // Button for playing the next track.
                 Button(
                     onClick = {
                         if (musicService.value != null) {
@@ -225,19 +240,32 @@ fun SongControlScreen() {
                     )
                 }
             }
+            // Display a banner ad at the bottom of the screen.
             BannerAd("ca-app-pub-3940256099942544/6300978111")
         }
     }
-
 }
+
+/**
+ * Utility function for formatting time in milliseconds to a string in "MM:SS" format.
+ *
+ * @param milliseconds The time in milliseconds.
+ * @return A formatted string representing the time.
+ */
 fun formatTime(milliseconds: Int): String {
     val minutes = (milliseconds / 1000) / 60
     val seconds = (milliseconds / 1000) % 60
     return String.format("%02d:%02d", minutes, seconds)
 }
 
+/**
+ * Composable function for rendering a banner ad.
+ * Displays an AdMob banner ad with the specified ad unit ID.
+ *
+ * @param adUnitId The AdMob ad unit ID.
+ */
 @Composable
-fun BannerAd(adUnitId: String){
+fun BannerAd(adUnitId: String) {
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center
@@ -258,13 +286,21 @@ fun BannerAd(adUnitId: String){
     }
 }
 
-
+/**
+ * Preview function for the Song Control screen.
+ * Allows developers to preview the SongControlScreen composable in Android Studio's design editor.
+ */
 @Preview
 @Composable
 fun SongControlScreenPreview() {
     SongControlScreen()
 }
 
+/**
+ * Preview function for the Banner Ad composable.
+ * Allows developers to preview the BannerAd composable in Android Studio's design editor.
+ * Uses the AdMob banner ID defined in the project's build configuration.
+ */
 @Preview
 @Composable
 fun BannerAdPreview() {

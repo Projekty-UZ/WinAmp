@@ -34,23 +34,33 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.example.musicmanager.R
 
+/**
+ * Composable function for rendering the Add Song screen.
+ * Allows users to input a YouTube link, validate it, and download the song using a Python script.
+ * Displays a progress indicator during the download process.
+ *
+ * @param yt_link A `String` representing the YouTube link to download the song from.
+ */
 @Composable
 fun AddSongScreen(yt_link: String) {
-    val databaseViewModel = LocalDatabaseViewModel.current
-    val coroutineScope = rememberCoroutineScope()
+    val databaseViewModel = LocalDatabaseViewModel.current // ViewModel for database operations.
+    val coroutineScope = rememberCoroutineScope() // Coroutine scope for launching background tasks.
 
-    val addSongScreenViewModel: AddSongScreenViewModel = viewModel()
+    val addSongScreenViewModel: AddSongScreenViewModel = viewModel() // ViewModel for managing UI state.
     LaunchedEffect(Unit) {
-        if(yt_link != "empty"){
+        // Update the YouTube link in the ViewModel if it's not empty.
+        if (yt_link != "empty") {
             addSongScreenViewModel.yt_link.value = "https://www.youtube.com/watch?v=$yt_link"
         }
     }
-    val context = LocalContext.current
-    if(!Python.isStarted()) {
-        Python.start(AndroidPlatform(context))
+    val context = LocalContext.current // Retrieve the current context for Android operations.
+    if (!Python.isStarted()) {
+        Python.start(AndroidPlatform(context)) // Start the Python interpreter if not already started.
     }
-    val py = Python.getInstance()
-    val module= py.getModule("test")
+    val py = Python.getInstance() // Get the Python instance.
+    val module = py.getModule("test") // Load the Python module named "test".
+
+    // Main container for the screen layout.
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -58,47 +68,49 @@ fun AddSongScreen(yt_link: String) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // TextField for entering the YouTube link.
             TextField(
                 value = addSongScreenViewModel.yt_link.value,
-                onValueChange = { addSongScreenViewModel.yt_link.value = it},
+                onValueChange = { addSongScreenViewModel.yt_link.value = it },
                 placeholder = {
-                        Text(stringResource(id = R.string.link_placeholder))
+                    Text(stringResource(id = R.string.link_placeholder)) // Placeholder text for the TextField.
                 },
                 modifier = Modifier.width(300.dp),
                 singleLine = true,
-                )
+            )
+            // Button for starting the download process.
             Button(
-                enabled = !addSongScreenViewModel.loading.value,
+                enabled = !addSongScreenViewModel.loading.value, // Disable the button if loading is in progress.
                 onClick = {
-                    addSongScreenViewModel.loading.value = true
-                    addSongScreenViewModel.progress.floatValue = 0f
+                    addSongScreenViewModel.loading.value = true // Set loading state to true.
+                    addSongScreenViewModel.progress.floatValue = 0f // Reset progress value.
                     coroutineScope.launch {
-                        // Start the python script in a background thread
+                        // Start the Python script in a background thread.
                         withContext(Dispatchers.IO) {
-                            python_script_button(module, addSongScreenViewModel.yt_link.value, context,addSongScreenViewModel, databaseViewModel)
+                            python_script_button(module, addSongScreenViewModel.yt_link.value, context, addSongScreenViewModel, databaseViewModel)
                         }
-
                     }
-                    addSongScreenViewModel.viewModelScope.launch{
-                        while(module.callAttr("get_progress").toFloat() == 1f){
+                    addSongScreenViewModel.viewModelScope.launch {
+                        // Monitor the progress of the Python script.
+                        while (module.callAttr("get_progress").toFloat() == 1f) {
                             delay(100)
                         }
-                        while(addSongScreenViewModel.loading.value){
+                        while (addSongScreenViewModel.loading.value) {
                             addSongScreenViewModel.progress.floatValue = module.callAttr("get_progress").toFloat()
                             Log.d("Progress", addSongScreenViewModel.progress.floatValue.toString())
                             delay(500)
-                            if(addSongScreenViewModel.progress.floatValue == 1f){
-                                addSongScreenViewModel.loading.value = false
-                                addSongScreenViewModel.progress.floatValue = 0f
+                            if (addSongScreenViewModel.progress.floatValue == 1f) {
+                                addSongScreenViewModel.loading.value = false // Set loading state to false.
+                                addSongScreenViewModel.progress.floatValue = 0f // Reset progress value.
                             }
                         }
-
                     }
                 },
-                ) {
-                Text(stringResource(id = R.string.download_song))
+            ) {
+                Text(stringResource(id = R.string.download_song)) // Button text.
             }
-            if(addSongScreenViewModel.loading.value){
+            // Display a progress indicator if loading is in progress.
+            if (addSongScreenViewModel.loading.value) {
                 LinearProgressIndicator(
                     progress = addSongScreenViewModel.progress.floatValue,
                     modifier = Modifier.width(300.dp),
@@ -107,39 +119,67 @@ fun AddSongScreen(yt_link: String) {
         }
     }
 }
-fun python_script_button(module:PyObject, yt_link:String, context : Context, addSongScreenViewModel: AddSongScreenViewModel, databaseViewModel: DatabaseViewModel){
-    val validated = validate_input(yt_link)
-    if(validated){
-        download_from_yt(module,yt_link)
-        val returnTable = module.callAttr("get_message").asList().map { it.toString() }
-        if(returnTable[0] == "Downloaded") {
+
+/**
+ * Function for handling the Python script execution and updating the UI state.
+ * Validates the YouTube link, downloads the song, and updates the database.
+ *
+ * @param module The `PyObject` representing the Python module.
+ * @param yt_link A `String` representing the YouTube link to download the song from.
+ * @param context The `Context` for Android operations.
+ * @param addSongScreenViewModel The `AddSongScreenViewModel` for managing UI state.
+ * @param databaseViewModel The `DatabaseViewModel` for database operations.
+ */
+fun python_script_button(module: PyObject, yt_link: String, context: Context, addSongScreenViewModel: AddSongScreenViewModel, databaseViewModel: DatabaseViewModel) {
+    val validated = validate_input(yt_link) // Validate the YouTube link.
+    if (validated) {
+        download_from_yt(module, yt_link) // Call the Python function to download the song.
+        val returnTable = module.callAttr("get_message").asList().map { it.toString() } // Retrieve the result from the Python script.
+        if (returnTable[0] == "Downloaded") {
             databaseViewModel.viewModelScope.launch(Dispatchers.Main) {
-                Toast.makeText(context, context.getString(R.string.download_success), Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.download_success), Toast.LENGTH_SHORT).show() // Show success message.
             }
-            val song = Song(id=0,title=returnTable[1],artist=returnTable[2],duration=returnTable[3].toInt(),pathToFile=returnTable[4])
-            databaseViewModel.addSong(song)
-        }
-        else{
+            val song = Song(
+                id = 0,
+                title = returnTable[1],
+                artist = returnTable[2],
+                duration = returnTable[3].toInt(),
+                pathToFile = returnTable[4]
+            )
+            databaseViewModel.addSong(song) // Add the song to the database.
+        } else {
             databaseViewModel.viewModelScope.launch(Dispatchers.Main) {
-                Toast.makeText(context, context.getString(R.string.download_success), Toast.LENGTH_SHORT).show()
-                addSongScreenViewModel.loading.value = false
-                addSongScreenViewModel.progress.floatValue = 0f
+                Toast.makeText(context, context.getString(R.string.download_success), Toast.LENGTH_SHORT).show() // Show success message.
+                addSongScreenViewModel.loading.value = false // Set loading state to false.
+                addSongScreenViewModel.progress.floatValue = 0f // Reset progress value.
             }
         }
-    }else{
+    } else {
         databaseViewModel.viewModelScope.launch(Dispatchers.Main) {
-            Toast.makeText(context, context.getString(R.string.download_invalid_link), Toast.LENGTH_SHORT).show()
-            addSongScreenViewModel.loading.value = false
-            addSongScreenViewModel.progress.floatValue = 0f
+            Toast.makeText(context, context.getString(R.string.download_invalid_link), Toast.LENGTH_SHORT).show() // Show invalid link message.
+            addSongScreenViewModel.loading.value = false // Set loading state to false.
+            addSongScreenViewModel.progress.floatValue = 0f // Reset progress value.
         }
     }
 }
 
-fun download_from_yt(module:PyObject,yt_link: String){
-    module.callAttr("download_from_yt",yt_link)
+/**
+ * Function for downloading a song using a Python script.
+ *
+ * @param module The `PyObject` representing the Python module.
+ * @param yt_link A `String` representing the YouTube link to download the song from.
+ */
+fun download_from_yt(module: PyObject, yt_link: String) {
+    module.callAttr("download_from_yt", yt_link) // Call the Python function to download the song.
 }
-fun validate_input(yt_link:String):Boolean{
-    val pattern = """^(http(s)?://)?((w){3}.)?youtu(be|.be)?(\.com)?/.+""".toRegex()
-    return pattern.matches(yt_link)
 
+/**
+ * Function for validating the YouTube link format.
+ *
+ * @param yt_link A `String` representing the YouTube link to validate.
+ * @return `Boolean` indicating whether the link is valid.
+ */
+fun validate_input(yt_link: String): Boolean {
+    val pattern = """^(http(s)?://)?((w){3}.)?youtu(be|.be)?(\.com)?/.+""".toRegex() // Regex pattern for YouTube links.
+    return pattern.matches(yt_link) // Check if the link matches the pattern.
 }

@@ -49,15 +49,26 @@ import com.example.musicmanager.navigation.Screens
 import com.example.musicmanager.ui.theme.Purple40
 import kotlinx.coroutines.delay
 
+/**
+ * Composable function for rendering a small playback control bar.
+ * Displays the current song's title, artist, and playback controls (previous, play/pause, next).
+ * Includes a marquee effect for scrolling text if the song title or artist exceeds the container width.
+ *
+ * @param navController The `NavController` used for navigation between screens.
+ * @param musicService The `SongPlayerService` instance providing the current song and playback state.
+ */
 @Composable
-fun SmallPlayback(navController: NavController,musicService: SongPlayerService) {
+fun SmallPlayback(navController: NavController, musicService: SongPlayerService) {
+    // State to track whether the song is playing.
     val isPlaying = remember { mutableStateOf(true) }
     val context = LocalContext.current
 
+    // Variables to store the width of the text and container for the marquee effect.
     var textWidth by remember { mutableStateOf(0) }
     var containerWidth by remember { mutableStateOf(0) }
     val offsetX = remember { Animatable(0f) }
 
+    // Launches an effect to animate the marquee text if it exceeds the container width.
     LaunchedEffect(textWidth, containerWidth) {
         if (textWidth > containerWidth) {
             while (true) {
@@ -75,13 +86,14 @@ fun SmallPlayback(navController: NavController,musicService: SongPlayerService) 
         }
     }
 
+    // Surface container for the playback bar with styling and click navigation.
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .background(color = Color.Transparent)
             .padding(8.dp)
             .clip(RoundedCornerShape(16.dp))
-            .clickable {  navController.navigate(Screens.SongControlScreen.route) }
+            .clickable { navController.navigate(Screens.SongControlScreen.route) }
             .zIndex(1f)
     ) {
         Row(
@@ -89,8 +101,8 @@ fun SmallPlayback(navController: NavController,musicService: SongPlayerService) 
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth()
                 .background(color = Purple40)
-
         ) {
+            // Icon representing the album cover.
             Icon(
                 painter = painterResource(id = R.drawable.ic_launcher_foreground),
                 contentDescription = "Album Cover",
@@ -98,6 +110,7 @@ fun SmallPlayback(navController: NavController,musicService: SongPlayerService) 
                 tint = Color.Magenta
             )
 
+            // Column displaying the song title and artist with marquee effect.
             Column(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.Start,
@@ -105,13 +118,15 @@ fun SmallPlayback(navController: NavController,musicService: SongPlayerService) 
                     .weight(1f)
                     .padding(start = 8.dp)
             ) {
-                MarqueeText(musicService.currentSong.value.title, modifier = Modifier.fillMaxWidth(),Color.Black)
-                MarqueeText(musicService.currentSong.value.artist, modifier = Modifier.fillMaxWidth(),Color.Gray)
+                MarqueeText(musicService.currentSong.value.title, modifier = Modifier.fillMaxWidth(), color = Color.Black)
+                MarqueeText(musicService.currentSong.value.artist, modifier = Modifier.fillMaxWidth(), color = Color.Gray)
             }
 
+            // Row containing playback control buttons (previous, play/pause, next).
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Button for playing the previous track.
                 IconButton(onClick = {
                     val intent = Intent(context, SongPlayerService::class.java).apply {
                         action = SongPlayerService.Actions.PREVIOUS.toString()
@@ -125,8 +140,9 @@ fun SmallPlayback(navController: NavController,musicService: SongPlayerService) 
                     )
                 }
 
+                // Button for toggling play/pause state.
                 IconButton(onClick = {
-                    if(musicService.isplaying.value) {
+                    if (musicService.isplaying.value) {
                         val intent = Intent(context, SongPlayerService::class.java).apply {
                             action = SongPlayerService.Actions.PAUSE.toString()
                         }
@@ -145,6 +161,7 @@ fun SmallPlayback(navController: NavController,musicService: SongPlayerService) 
                     )
                 }
 
+                // Button for playing the next track.
                 IconButton(onClick = {
                     val intent = Intent(context, SongPlayerService::class.java).apply {
                         action = SongPlayerService.Actions.NEXT.toString()
@@ -152,7 +169,7 @@ fun SmallPlayback(navController: NavController,musicService: SongPlayerService) 
                     context.startService(intent)
                 }) {
                     Icon(
-                        painter= painterResource(id = R.drawable.next_song_icon),
+                        painter = painterResource(id = R.drawable.next_song_icon),
                         contentDescription = "Next Track",
                         tint = Color.Black
                     )
@@ -162,10 +179,19 @@ fun SmallPlayback(navController: NavController,musicService: SongPlayerService) 
     }
 }
 
+/**
+ * Composable function for rendering scrolling text (marquee effect).
+ * Animates the text horizontally if it exceeds the container width.
+ *
+ * @param text The text to display.
+ * @param modifier The `Modifier` for customizing the appearance and behavior of the text.
+ * @param color The color of the text.
+ */
 @Composable
-fun MarqueeText(text: String, modifier : Modifier = Modifier, color: Color = Color.Black) {
+fun MarqueeText(text: String, modifier: Modifier = Modifier, color: Color = Color.Black) {
     val scrollState = rememberScrollState()
 
+    // Launches an effect to animate the scrolling text.
     LaunchedEffect(Unit) {
         while (true) {
             scrollState.animateScrollTo(scrollState.maxValue, animationSpec = tween(durationMillis = text.length * 200, easing = LinearEasing))
@@ -175,6 +201,7 @@ fun MarqueeText(text: String, modifier : Modifier = Modifier, color: Color = Col
         }
     }
 
+    // Box container for the scrolling text.
     Box(modifier = modifier) {
         Row(
             modifier = Modifier

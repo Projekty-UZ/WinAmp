@@ -21,50 +21,73 @@ import androidx.navigation.NavHostController
 import com.example.musicmanager.R
 import com.example.musicmanager.navigation.Screens
 import kotlinx.coroutines.delay
-
+/**
+ * Composable function for rendering an animated splash screen.
+ * Displays a fading animation for the foreground image and navigates to the authentication screen after the animation completes.
+ *
+ * @param navController The NavController used for handling navigation between screens.
+ */
 @Composable
-fun  AnimatedSplashScreen(navController: NavHostController) {
+fun AnimatedSplashScreen(navController: NavHostController) {
+    // State variable to control the start of the animation.
     var startAnimation by remember { mutableStateOf(false) }
+
+    // Animation state for controlling the alpha value of the foreground image.
     val alphaAnim = animateFloatAsState(
-        targetValue = if (startAnimation) 1f else 0f,
+        targetValue = if (startAnimation) 1f else 0f, // Target alpha value based on animation state.
         animationSpec = tween(
-            durationMillis = 3000,
-            easing = LinearOutSlowInEasing
+            durationMillis = 3000, // Duration of the animation in milliseconds.
+            easing = LinearOutSlowInEasing // Easing function for smooth animation.
         )
     )
 
+    // Effect to start the animation and navigate to the authentication screen after a delay.
     LaunchedEffect(key1 = true) {
-        startAnimation = true
-        delay(3000)
-        navController.popBackStack()
-        navController.navigate(Screens.AuthScreen.route)
+        startAnimation = true // Start the animation.
+        delay(3000) // Wait for the animation to complete.
+        navController.popBackStack() // Remove the splash screen from the back stack.
+        navController.navigate(Screens.AuthScreen.route) // Navigate to the authentication screen.
     }
+
+    // Render the splash screen with the animated alpha value.
     SplashScreen(alphaAnim.value)
 }
-@Composable
-fun SplashScreen(alpha:Float) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
 
+/**
+ * Composable function for rendering the splash screen layout.
+ * Displays a background image and a foreground image with adjustable alpha for animation effects.
+ *
+ * @param alpha The alpha value for the foreground image, used for fade-in animation.
+ */
+@Composable
+fun SplashScreen(alpha: Float) {
+    Box(
+        modifier = Modifier.fillMaxSize(), // Modifier to make the Box fill the entire screen.
+        contentAlignment = Alignment.Center // Align the content to the center of the Box.
+    ) {
+        // Background image filling the entire screen.
         Image(
-            painter = painterResource(id = R.drawable.ic_launcher_background),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.FillBounds
+            painter = painterResource(id = R.drawable.ic_launcher_background), // Resource ID for the background image.
+            contentDescription = null, // No content description for accessibility.
+            modifier = Modifier.fillMaxSize(), // Modifier to make the image fill the entire screen.
+            contentScale = ContentScale.FillBounds // Scale the image to fill the bounds.
         )
+        // Foreground image with adjustable alpha for animation.
         Image(
-            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-            contentDescription = null,
-            alpha = alpha,
-            modifier = Modifier.fillMaxSize(),
+            painter = painterResource(id = R.drawable.ic_launcher_foreground), // Resource ID for the foreground image.
+            contentDescription = null, // No content description for accessibility.
+            alpha = alpha, // Apply the alpha value for fade-in effect.
+            modifier = Modifier.fillMaxSize() // Modifier to make the image fill the entire screen.
         )
     }
 }
 
+/**
+ * Preview function for the splash screen layout.
+ * Allows developers to preview the SplashScreen composable in Android Studio's design editor.
+ */
 @Preview
 @Composable
 fun SplashScreenPreview() {
-    SplashScreen(alpha = 1f)
+    SplashScreen(alpha = 1f) // Render the splash screen with full alpha for preview.
 }

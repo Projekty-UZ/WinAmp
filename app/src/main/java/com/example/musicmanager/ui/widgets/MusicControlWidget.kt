@@ -49,10 +49,24 @@ import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.currentState
 import kotlinx.coroutines.flow.first
 
+/**
+ * A GlanceAppWidget implementation for controlling music playback.
+ * Displays the current song, artist, and playback controls (play/pause, next, previous).
+ */
 class MusicControlWidget : GlanceAppWidget() {
 
+    /**
+     * Defines the state management for the widget using PreferencesGlanceStateDefinition.
+     */
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
 
+    /**
+     * Provides the content for the widget and updates its state.
+     * Registers a BroadcastReceiver to listen for updates from the SongPlayerService.
+     *
+     * @param context The application context.
+     * @param id The unique identifier for the widget instance.
+     */
     @SuppressLint("NewApi", "CoroutineCreationDuringComposition")
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         // Register a BroadcastReceiver to listen for state updates
@@ -71,29 +85,37 @@ class MusicControlWidget : GlanceAppWidget() {
         context.registerReceiver(receiver, IntentFilter(SongPlayerService.ACTION_UPDATE_STATE),
             Context.RECEIVER_EXPORTED)
 
-        val preferences = context.dataStore.data.first() // Read from DataStore
+        // Read preferences from DataStore
+        val preferences = context.dataStore.data.first()
         updateAppWidgetState(context, id) { prefs ->
             prefs[PreferencesKeys.IS_PLAYING] = preferences[PreferencesKeys.IS_PLAYING] ?: false
             prefs[PreferencesKeys.CURRENT_SONG] = preferences[PreferencesKeys.CURRENT_SONG] ?: "Unknown Song"
             prefs[PreferencesKeys.ARTIST] = preferences[PreferencesKeys.ARTIST] ?: "Unknown Artist"
         }
 
+        // Provide the widget content
         provideContent {
-
             MusicControlContent(context)
         }
     }
 
-
+    /**
+     * Composable function to define the UI content of the music control widget.
+     * Displays the album cover, song title, artist name, and playback controls.
+     *
+     * @param context The application context.
+     */
     @SuppressLint("RestrictedApi")
     @Composable
     private fun MusicControlContent(context: Context) {
         val preferences = currentState<Preferences>()
 
+        // State variables for widget content
         var isPlaying by remember { mutableStateOf(preferences[PreferencesKeys.IS_PLAYING] ?: false) }
         var currentSong by remember { mutableStateOf(preferences[PreferencesKeys.CURRENT_SONG] ?: "Unknown Song") }
         var artist by remember { mutableStateOf(preferences[PreferencesKeys.ARTIST] ?: "Unknown Artist") }
 
+        // Update state when preferences change
         LaunchedEffect(Unit) {
             context.dataStore.data.collect { newPreferences ->
                 isPlaying = newPreferences[PreferencesKeys.IS_PLAYING] ?: false
@@ -102,6 +124,7 @@ class MusicControlWidget : GlanceAppWidget() {
             }
         }
 
+        // Widget layout
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
@@ -173,10 +196,21 @@ class MusicControlWidget : GlanceAppWidget() {
             }
         }
     }
-
 }
 
+/**
+ * Handles the play/pause action for the music control widget.
+ * Toggles the playback state by sending an intent to the SongPlayerService.
+ */
 class PlayPauseAction : ActionCallback {
+    /**
+     * Called when the play/pause action is triggered.
+     * Reads the current playback state from the DataStore and sends the appropriate intent to the SongPlayerService.
+     *
+     * @param context The application context.
+     * @param glanceId The unique identifier for the widget instance.
+     * @param parameters Additional parameters for the action (not used here).
+     */
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val preferences = context.dataStore.data.first()
         val isPlaying = preferences[PreferencesKeys.IS_PLAYING] ?: false
@@ -189,9 +223,20 @@ class PlayPauseAction : ActionCallback {
     }
 }
 
+/**
+ * Handles the next action for the music control widget.
+ * Sends an intent to the SongPlayerService to skip to the next song.
+ */
 class NextAction : ActionCallback {
+    /**
+     * Called when the next action is triggered.
+     * Sends an intent to the SongPlayerService to play the next song.
+     *
+     * @param context The application context.
+     * @param glanceId The unique identifier for the widget instance.
+     * @param parameters Additional parameters for the action (not used here).
+     */
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        // Handle next action
         val intent = Intent(context, SongPlayerService::class.java).apply {
             action = SongPlayerService.Actions.NEXT.toString()
         }
@@ -199,9 +244,20 @@ class NextAction : ActionCallback {
     }
 }
 
+/**
+ * Handles the previous action for the music control widget.
+ * Sends an intent to the SongPlayerService to skip to the previous song.
+ */
 class PreviousAction : ActionCallback {
+    /**
+     * Called when the previous action is triggered.
+     * Sends an intent to the SongPlayerService to play the previous song.
+     *
+     * @param context The application context.
+     * @param glanceId The unique identifier for the widget instance.
+     * @param parameters Additional parameters for the action (not used here).
+     */
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        // Handle previous action
         val intent = Intent(context, SongPlayerService::class.java).apply {
             action = SongPlayerService.Actions.PREVIOUS.toString()
         }
@@ -209,19 +265,49 @@ class PreviousAction : ActionCallback {
     }
 }
 
+/**
+ * A receiver for the MusicControlWidget.
+ * Associates the widget with its implementation class.
+ */
 class MusicControlWidgetReceiver : GlanceAppWidgetReceiver() {
+    /**
+     * Specifies the GlanceAppWidget implementation for this receiver.
+     */
     override val glanceAppWidget: GlanceAppWidget = MusicControlWidget()
 }
 
+/**
+ * Object containing keys for accessing preferences in the DataStore.
+ */
 object PreferencesKeys {
+    /**
+     * Key for storing the playback state (playing or paused).
+     */
     val IS_PLAYING = booleanPreferencesKey("isPlaying")
+
+    /**
+     * Key for storing the title of the currently playing song.
+     */
     val CURRENT_SONG = stringPreferencesKey("currentSong")
+
+    /**
+     * Key for storing the artist of the currently playing song.
+     */
     val ARTIST = stringPreferencesKey("artist")
 }
 
-
+/**
+ * Extension property for accessing the DataStore instance in the application context.
+ */
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "widget_state")
 
+/**
+ * Saves the current playback state to the DataStore.
+ * Updates the widget state based on the received intent.
+ *
+ * @param context The application context.
+ * @param intent The intent containing playback state information.
+ */
 private suspend fun saveState(context: Context, intent: Intent) {
     Log.d("MusicControlWidget", "Saving state")
     Log.d("MusicControlWidget", "Is playing: ${intent.getBooleanExtra(SongPlayerService.EXTRA_IS_PLAYING, false)}")

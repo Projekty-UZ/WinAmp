@@ -23,43 +23,71 @@ import com.example.musicmanager.StepCounterService
 import android.content.Intent
 import androidx.compose.ui.platform.LocalContext
 
+/**
+ * Composable function for rendering the Step Counter screen.
+ * Displays the total steps taken and the calculated distance based on the step count.
+ * Includes a button to reset the step count and restart the step counter service.
+ */
 @Composable
 fun StepCounterScreen() {
+    // Retrieve the current instance of the LocalStepCountViewModel.
     val viewModel = LocalStepCountViewModel.current
+
+    // Observe the total step count from the ViewModel as a state.
     val totalSteps = viewModel.stepCount.observeAsState()
-    var processing by remember {mutableStateOf(false)}
+
+    // State variable to track whether the reset process is ongoing.
+    var processing by remember { mutableStateOf(false) }
+
+    // Retrieve the current context for starting the service.
     val context = LocalContext.current
+
+    // Main layout for the Step Counter screen.
     Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        modifier = Modifier.fillMaxSize(), // Modifier to make the Column fill the entire screen.
+        horizontalAlignment = Alignment.CenterHorizontally, // Align content horizontally to the center.
+        verticalArrangement = Arrangement.Center // Arrange content vertically in the center.
     ) {
+        // Display the total steps and calculated distance.
         if (totalSteps.value != null) {
-            Text(stringResource(id = R.string.step_counter_desc,
-                totalSteps.value!!.totalSteps.toString(),
-                calculateDistance(totalSteps.value!!.totalSteps)
-            ))
+            Text(
+                stringResource(
+                    id = R.string.step_counter_desc,
+                    totalSteps.value!!.totalSteps.toString(),
+                    calculateDistance(totalSteps.value!!.totalSteps)
+                )
+            )
         } else {
+            // Display default values if no step count is available.
             Text(stringResource(id = R.string.step_counter_desc, "0", "0"))
         }
+
+        // Button for resetting the step count and restarting the service.
         Button(
             onClick = {
-                processing = true
-                viewModel.update(StepCount(id = 1, totalSteps = 0))
-                val intent = Intent(context , StepCounterService::class.java).apply {
-                    putExtra("RESET_STEPS", 0)
+                processing = true // Indicate that the reset process has started.
+                viewModel.update(StepCount(id = 1, totalSteps = 0)) // Reset the step count in the ViewModel.
+                val intent = Intent(context, StepCounterService::class.java).apply {
+                    putExtra("RESET_STEPS", 0) // Pass the reset steps value to the service.
                 }
-                context.startService(intent)
-                processing = false
+                context.startService(intent) // Start the step counter service.
+                processing = false // Indicate that the reset process has completed.
             },
-            enabled = !processing
+            enabled = !processing // Disable the button while processing.
         ) {
-            Text(stringResource(id = R.string.step_counter_reset))
+            Text(stringResource(id = R.string.step_counter_reset)) // Display the button text.
         }
     }
 }
 
+/**
+ * Utility function for calculating the distance based on the number of steps.
+ * Converts the step count into kilometers using a fixed step length of 0.762 meters.
+ *
+ * @param steps The number of steps taken.
+ * @return A formatted string representing the distance in kilometers.
+ */
 @SuppressLint("DefaultLocale")
 fun calculateDistance(steps: Int): String {
-    return String.format("%.2f",(steps * 0.762 / 1000))
+    return String.format("%.2f", (steps * 0.762 / 1000)) // Calculate and format the distance.
 }

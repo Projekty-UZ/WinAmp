@@ -32,43 +32,119 @@ import com.example.musicmanager.navigation.Screens
 import kotlin.or
 import kotlin.text.toLong
 
+/**
+ * The SongPlayerService class is responsible for managing music playback in the application.
+ * It handles media playback, audio focus, notifications, and interactions with the MediaSession API.
+ */
 class SongPlayerService : Service() {
+
+    /**
+     * MediaPlayer instance for playing audio files.
+     */
     var mediaPlayer: MediaPlayer? = null
+
+    /**
+     * Binder instance for binding the service to activities.
+     */
     private val binder = SongPlayerBinder()
+
+    /**
+     * Tracks whether a song is currently playing.
+     */
     var isplaying = mutableStateOf(false)
+
+    /**
+     * List of songs available for playback.
+     */
     var songs = mutableListOf<Song>()
-    var currentSong = mutableStateOf(Song(0,"","",0,""))
+
+    /**
+     * The currently playing song.
+     */
+    var currentSong = mutableStateOf(Song(0, "", "", 0, ""))
+
+    /**
+     * Index of the currently playing song in the songs list.
+     */
     var currentSongIndex = mutableStateOf(0)
+
+    /**
+     * Queue of songs to be played next.
+     */
     var songQueue = mutableListOf<Song>()
+
+    /**
+     * Stack of previously played songs for navigation.
+     */
     var songStack = mutableListOf<Song>()
+
+    /**
+     * AudioManager instance for managing audio focus.
+     */
     private lateinit var audioManager: AudioManager
+
+    /**
+     * BroadcastReceiver for handling phone call interruptions.
+     */
     private lateinit var phoneCallReceiver: PhoneCallReceiver
+
+    /**
+     * MediaSession instance for handling media controls.
+     */
     private lateinit var mediaSession: MediaSession
 
     companion object {
+        /**
+         * Action for broadcasting playback state updates.
+         */
         const val ACTION_UPDATE_STATE = "com.example.music.UPDATE_STATE"
+
+        /**
+         * Extra key for indicating whether a song is playing.
+         */
         const val EXTRA_IS_PLAYING = "isPlaying"
+
+        /**
+         * Extra key for the title of the currently playing song.
+         */
         const val EXTRA_CURRENT_SONG = "currentSong"
+
+        /**
+         * Extra key for the artist of the currently playing song.
+         */
         const val EXTRA_ARTIST = "artist"
     }
 
+    /**
+     * Called when the service is created.
+     * Initializes the AudioManager, MediaSession, and registers the phone call receiver.
+     */
     override fun onCreate() {
         super.onCreate()
         audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         phoneCallReceiver = PhoneCallReceiver()
-        registerReceiver(phoneCallReceiver, IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED))
+        registerReceiver(
+            phoneCallReceiver,
+            IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED)
+        )
 
         mediaSession = MediaSession(this, "SongPlayerService")
         mediaSession.setMediaButtonReceiver(null)
         mediaSession.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS or MediaSession.FLAG_HANDLES_TRANSPORT_CONTROLS)
         mediaSession.setCallback(object : MediaSession.Callback() {
 
-
+            /**
+             * Handles media button events such as play, pause, next, and previous.
+             *
+             * @param mediaButtonIntent The intent containing the media button event.
+             * @return True if the event was handled, false otherwise.
+             */
             override fun onMediaButtonEvent(mediaButtonIntent: Intent): Boolean {
-                val keyEvent = mediaButtonIntent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT)
+                val keyEvent =
+                    mediaButtonIntent.getParcelableExtra<KeyEvent>(Intent.EXTRA_KEY_EVENT)
                 keyEvent?.let {
                     Log.d("SongPlayerService", "Media button pressed: ${it.keyCode} , ${it.action}")
-                    if(it.action == KeyEvent.ACTION_DOWN) {
+                    if (it.action == KeyEvent.ACTION_DOWN) {
                         when (it.keyCode) {
                             KeyEvent.KEYCODE_MEDIA_PLAY -> playSong()
                             KeyEvent.KEYCODE_MEDIA_PAUSE -> pauseSong()
@@ -85,43 +161,43 @@ class SongPlayerService : Service() {
         mediaSession.isActive = true
     }
 
+    /**
+     * AudioFocusRequest instance for managing audio focus changes.
+     */
     @SuppressLint("NewApi")
     val audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
         .setOnAudioFocusChangeListener { focusChange ->
             when (focusChange) {
-                AudioManager.AUDIOFOCUS_LOSS -> {
-                    // Another app took permanent audio focus (e.g., started playing media)
-                    pauseSong()
-                }
-                AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-                    // Another app took temporary audio focus (e.g., during a phone call)
-                    pauseSong()
-                }
-                AudioManager.AUDIOFOCUS_GAIN -> {
-                    // Regained audio focus (e.g., after a phone call ends)
-                    playSong()
-                }
+                AudioManager.AUDIOFOCUS_LOSS -> pauseSong()
+                AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> pauseSong()
+                AudioManager.AUDIOFOCUS_GAIN -> playSong()
             }
         }
         .build()
 
-    //stop playing for phone calls
+    /**
+     * BroadcastReceiver for handling phone call interruptions.
+     * Pauses playback during phone calls and resumes afterward.
+     */
     class PhoneCallReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == TelephonyManager.ACTION_PHONE_STATE_CHANGED) {
                 val state = intent.getStringExtra(TelephonyManager.EXTRA_STATE)
                 if (state == TelephonyManager.EXTRA_STATE_RINGING || state == TelephonyManager.EXTRA_STATE_OFFHOOK) {
-                    // Phone is ringing or in a call
                     SongPlayerService().pauseSong()
                 } else if (state == TelephonyManager.EXTRA_STATE_IDLE) {
-                    // Call ended
                     SongPlayerService().playSong()
                 }
             }
         }
     }
 
-    // Example method to broadcast state changes
+    /**
+     * Broadcasts the current playback state.
+     *
+     * @param title The title of the currently playing song (optional).
+     * @param artist The artist of the currently playing song (optional).
+     */
     private fun broadcastState(title: String? = null, artist: String? = null) {
         val intent = Intent(ACTION_UPDATE_STATE).apply {
             putExtra(EXTRA_IS_PLAYING, isplaying.value)
@@ -131,16 +207,32 @@ class SongPlayerService : Service() {
         sendBroadcast(intent)
     }
 
-    // Call this method whenever the state changes
-
+    /**
+     * Binder class for providing access to the service instance.
+     */
     inner class SongPlayerBinder : Binder() {
         fun getService(): SongPlayerService = this@SongPlayerService
     }
+
+    /**
+     * Called when the service is bound to an activity.
+     *
+     * @param intent The intent used to bind the service.
+     * @return The binder instance for the service.
+     */
     @SuppressLint("InlinedApi")
     override fun onBind(intent: Intent?): IBinder {
         broadcastState()
         return binder
     }
+
+    /**
+     * Called when the service is unbound from an activity.
+     * Stops and releases the MediaPlayer instance.
+     *
+     * @param intent The intent used to unbind the service.
+     * @return True if the service should remain bound, false otherwise.
+     */
     override fun onUnbind(intent: Intent?): Boolean {
         mediaPlayer?.stop()
         mediaPlayer?.release()
@@ -149,19 +241,28 @@ class SongPlayerService : Service() {
         return super.onUnbind(intent)
     }
 
+    /**
+     * Called when the service receives a start command.
+     * Handles playback actions and updates the notification.
+     *
+     * @param intent The intent containing the action to perform.
+     * @param flags Additional flags for the start command.
+     * @param startId The start ID for the command.
+     * @return The start mode for the service.
+     */
     @SuppressLint("NewApi")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val notification = buildNotification(currentSong.value.title, currentSong.value.artist)
         startForeground(1, notification)
 
-        when(intent?.action){
+        when (intent?.action) {
             Actions.PLAY.toString() -> {
                 val result = audioManager.requestAudioFocus(audioFocusRequest)
                 if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
-                    // Start playing media
                     playSong()
                 }
             }
+
             Actions.PAUSE.toString() -> pauseSong()
             Actions.NEXT.toString() -> nextSong()
             Actions.PREVIOUS.toString() -> previousSong()
@@ -170,33 +271,41 @@ class SongPlayerService : Service() {
                 val result = audioManager.requestAudioFocus(audioFocusRequest)
                 if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
                     startSong(intent)
-                }else{
+                } else {
                     NavigationEventHolder.navigateTo(Screens.SongScreen.route)
                 }
             }
+
             Actions.STOP_SERVICE.toString() -> stopSelf()
         }
 
         return START_STICKY
     }
 
+    /**
+     * Updates the playback state in the MediaSession.
+     *
+     * @param state The playback state to set.
+     */
     private fun updatePlaybackState(state: Int) {
         mediaPlayer?.let {
             val playbackState = PlaybackState.Builder()
-                .setState(state, it.currentPosition.toLong(), 1f) // State, position, playback speed
+                .setState(state, it.currentPosition.toLong(), 1f)
                 .setActions(
                     PlaybackState.ACTION_PLAY or
                             PlaybackState.ACTION_PAUSE or
                             PlaybackState.ACTION_SKIP_TO_NEXT or
                             PlaybackState.ACTION_SKIP_TO_PREVIOUS
-                ) // Supported actions
+                )
                 .build()
             mediaSession.setPlaybackState(playbackState)
         } ?: Log.e("SongPlayerService", "MediaPlayer is null in updatePlaybackState")
     }
 
-
-    private fun playSong(){
+    /**
+     * Starts playback of the current song.
+     */
+    private fun playSong() {
         mediaPlayer?.start()
         isplaying.value = true
         Log.d("SongPlayerService", "Playing song ${isplaying.value}")
@@ -204,21 +313,27 @@ class SongPlayerService : Service() {
         broadcastState()
         updateNotification()
     }
-    private fun pauseSong(){
+
+    /**
+     * Pauses playback of the current song.
+     */
+    private fun pauseSong() {
         mediaPlayer?.pause()
         isplaying.value = false
         Log.d("SongPlayerService", "Playing song ${isplaying.value}")
         updatePlaybackState(PlaybackState.STATE_PAUSED)
         broadcastState()
         updateNotification()
-
     }
-    private fun nextSong(){
+
+    /**
+     * Skips to the next song in the playlist.
+     */
+    private fun nextSong() {
         updatePlaybackState(PlaybackState.STATE_SKIPPING_TO_NEXT)
         mediaPlayer?.stop()
         mediaPlayer?.release()
 
-        //dodaj na stos ostatnio odtwarzanych piosenek
         songStack.add(currentSong.value)
 
         val newindex = (currentSongIndex.value + 1) % songs.size
@@ -236,6 +351,10 @@ class SongPlayerService : Service() {
         broadcastState()
         updateNotification()
     }
+
+    /**
+     * Skips to the previous song in the playlist or stack.
+     */
     private fun previousSong() {
         updatePlaybackState(PlaybackState.STATE_SKIPPING_TO_PREVIOUS)
         mediaPlayer?.stop()
@@ -244,9 +363,7 @@ class SongPlayerService : Service() {
         if (songStack.isNotEmpty()) {
             currentSong.value = songStack.removeAt(songStack.size - 1)
             currentSongIndex.value = songs.indexOf(currentSong.value)
-
-        }
-        else{
+        } else {
             currentSongIndex.value = (0 until songs.size).random()
             currentSong.value = songs[currentSongIndex.value]
         }
@@ -261,13 +378,23 @@ class SongPlayerService : Service() {
         broadcastState()
         updateNotification()
     }
-    private fun stopSong(){
+
+    /**
+     * Stops playback and releases the MediaPlayer instance.
+     */
+    private fun stopSong() {
         mediaPlayer?.stop()
         mediaPlayer?.release()
         mediaPlayer = null
         isplaying.value = false
         broadcastState("Unknown Song", "Unknown Artist")
     }
+
+    /**
+     * Starts playback of a specific song based on the provided intent.
+     *
+     * @param intent The intent containing song details.
+     */
     private fun startSong(intent: Intent) {
         mediaPlayer?.stop()
         mediaPlayer?.release()
@@ -301,6 +428,10 @@ class SongPlayerService : Service() {
         updateNotification()
     }
 
+    /**
+     * Called when the service is destroyed.
+     * Stops playback, releases resources, and unregisters the phone call receiver.
+     */
     override fun onDestroy() {
         mediaPlayer?.stop()
         mediaPlayer?.release()
@@ -311,15 +442,22 @@ class SongPlayerService : Service() {
         super.onDestroy()
     }
 
+    /**
+     * Updates the notification with the current song details.
+     */
     private fun updateNotification() {
         val notification = buildNotification(currentSong.value.title, currentSong.value.artist)
         startForeground(1, notification)
     }
 
-    // update notification every second
-
-
-
+    /**
+     * Builds a notification for the music player service.
+     * The notification includes actions for play/pause, previous, and next, and displays the current song's title and artist.
+     *
+     * @param title The title of the currently playing song.
+     * @param artist The artist of the currently playing song.
+     * @return A Notification object configured for the music player service.
+     */
     private fun buildNotification(title: String?, artist: String?): Notification {
         // Create notification channel for Android O and above
         val channelId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -347,7 +485,8 @@ class SongPlayerService : Service() {
             createActionPendingIntent(Actions.NEXT)
         )
         val mediaSession = MediaSessionCompat(this, "SongPlayerService")
-        val largeIconBitmap = BitmapFactory.decodeResource(resources, R.drawable.ic_launcher_background)
+        val largeIconBitmap =
+            BitmapFactory.decodeResource(resources, R.drawable.ic_launcher_background)
 
         // Build the notification
         return NotificationCompat.Builder(this, channelId).apply {
@@ -357,7 +496,11 @@ class SongPlayerService : Service() {
             setLargeIcon(largeIconBitmap) // Replace with your large icon logic
             setStyle(
                 androidx.media.app.NotificationCompat.MediaStyle()
-                    .setShowActionsInCompactView(0, 1, 2) // Show play/pause, previous, and next in compact view
+                    .setShowActionsInCompactView(
+                        0,
+                        1,
+                        2
+                    ) // Show play/pause, previous, and next in compact view
                     .setMediaSession(mediaSession.sessionToken)
             )
             addAction(previousAction)
@@ -370,9 +513,15 @@ class SongPlayerService : Service() {
         }.build()
     }
 
+    /**
+     * Creates a PendingIntent for the play/pause action in the notification.
+     *
+     * @return A PendingIntent for toggling play/pause functionality.
+     */
     private fun createPlayPausePendingIntent(): PendingIntent {
         val intent = Intent(this, SongPlayerService::class.java).apply {
-            action = if (isplaying.value == true) Actions.PAUSE.toString() else Actions.PLAY.toString()
+            action =
+                if (isplaying.value == true) Actions.PAUSE.toString() else Actions.PLAY.toString()
         }
         return PendingIntent.getService(
             this,
@@ -384,6 +533,9 @@ class SongPlayerService : Service() {
 
     /**
      * Creates a PendingIntent for a specific action (e.g., PREVIOUS, NEXT).
+     *
+     * @param action The action to be performed (e.g., PREVIOUS, NEXT).
+     * @return A PendingIntent for the specified action.
      */
     private fun createActionPendingIntent(action: Actions): PendingIntent {
         val intent = Intent(this, SongPlayerService::class.java).apply {
@@ -399,6 +551,8 @@ class SongPlayerService : Service() {
 
     /**
      * Creates a PendingIntent for the notification content (to open the app).
+     *
+     * @return A PendingIntent for opening the app from the notification.
      */
     private fun createNotificationPendingIntent(): PendingIntent {
         val intent = Intent(this, MainActivity::class.java).apply {
@@ -413,6 +567,13 @@ class SongPlayerService : Service() {
         )
     }
 
+    /**
+     * Creates a notification channel for Android O and above.
+     *
+     * @param channelId The ID of the notification channel.
+     * @param channelName The name of the notification channel.
+     * @return The ID of the created notification channel.
+     */
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel(channelId: String, channelName: String): String {
         // Define the properties of the notification channel
@@ -432,7 +593,10 @@ class SongPlayerService : Service() {
         return channelId                                  // Return the channel ID
     }
 
-    enum class Actions{
+    /**
+     * Enum class representing various actions for the music player service.
+     */
+    enum class Actions {
         START_SONG,
         ADD_SONG_QUEUE,
         ADD_PLAYLIST_QUEUE,

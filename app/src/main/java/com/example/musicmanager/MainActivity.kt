@@ -37,24 +37,56 @@ import com.example.musicmanager.ui.viewModels.LocalStepCountViewModel
 import com.google.android.gms.ads.MobileAds
 
 
+/**
+ * The MainActivity class serves as the entry point for the Music Manager application.
+ * It manages the lifecycle of the app, handles user intents, and binds to services.
+ */
 class MainActivity : ComponentActivity() {
-    val databaseViewModel: DatabaseViewModel by viewModels<DatabaseViewModel>{
-        DatabaseViewModelFactory((application as MusicManagerApplication).repository, (application as MusicManagerApplication).authDataRepository)
+
+    /**
+     * ViewModel for database operations.
+     * Provides access to the repository and authentication data repository.
+     */
+    val databaseViewModel: DatabaseViewModel by viewModels<DatabaseViewModel> {
+        DatabaseViewModelFactory(
+            (application as MusicManagerApplication).repository,
+            (application as MusicManagerApplication).authDataRepository
+        )
     }
-    val stepCountViewModel: StepCountViewModel by viewModels<StepCountViewModel>{
+
+    /**
+     * ViewModel for step count operations.
+     * Provides access to the step count repository.
+     */
+    val stepCountViewModel: StepCountViewModel by viewModels<StepCountViewModel> {
         StepCountViewModelFactory((application as MusicManagerApplication).stepCountRepository)
     }
+
+    /**
+     * Reference to the SongPlayerService instance.
+     * Used for managing music playback.
+     */
     var musicService: SongPlayerService? = null
 
+    /**
+     * Stores a pending intent to be handled later.
+     */
     var pendingIntent: Intent? = null
 
+    /**
+     * Indicates whether the service is bound to the activity.
+     */
     private var isBound = false
 
+    /**
+     * ServiceConnection implementation for binding to the SongPlayerService.
+     * Manages the connection lifecycle and updates the music service with song data.
+     */
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder = service as SongPlayerService.SongPlayerBinder
             musicService = binder.getService()
-            databaseViewModel.allSongs.observe(this@MainActivity){
+            databaseViewModel.allSongs.observe(this@MainActivity) {
                 musicService?.songs = it.toMutableList()
             }
             isBound = true
@@ -66,7 +98,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    val screensWithBottomNav= listOf(
+    /**
+     * List of screen routes that display a bottom navigation bar.
+     */
+    val screensWithBottomNav = listOf(
         Screens.SongScreen.route,
         Screens.PlaylistScreen.route,
         Screens.AddSongScreen.route,
@@ -74,32 +109,46 @@ class MainActivity : ComponentActivity() {
         Screens.LocationTrackerScreen.route
     )
 
-    val screensWithoutPlayback= listOf(
+    /**
+     * List of screen routes that do not display playback controls.
+     */
+    val screensWithoutPlayback = listOf(
         Screens.SplashScreen.route,
         Screens.SongControlScreen.route
     )
 
-
-
+    /**
+     * Handles new intents received by the activity.
+     * If the user is authenticated, the intent is processed immediately.
+     * Otherwise, it is stored as a pending intent.
+     *
+     * @param intent The new intent to handle.
+     */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if(databaseViewModel.userAuthenticated){
+        if (databaseViewModel.userAuthenticated) {
             handleIntent(intent)
-        }else{
+        } else {
             pendingIntent = intent
         }
     }
 
-     fun handlePendingIntent() {
-        // Check if there is a pending intent
+    /**
+     * Processes the pending intent if one exists.
+     */
+    fun handlePendingIntent() {
         if (pendingIntent != null) {
-            // Handle the pending intent
             handleIntent(pendingIntent!!)
-            // Clear the pending intent
             pendingIntent = null
         }
     }
 
+    /**
+     * Processes the given intent.
+     * Handles navigation and YouTube link sharing.
+     *
+     * @param intent The intent to process.
+     */
     private fun handleIntent(intent: Intent) {
         Log.d("INTENT", "received $intent")
         Log.d("INTENT", intent.toString())
@@ -138,24 +187,32 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Called when the activity is created.
+     * Initializes services, permissions, and the UI.
+     *
+     * @param savedInstanceState The saved instance state.
+     */
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU){
-           ActivityCompat.requestPermissions(
-               this,
-               arrayOf(android.Manifest.permission.POST_NOTIFICATIONS,
-                   android.Manifest.permission.ACTIVITY_RECOGNITION,
-                   android.Manifest.permission.ACCESS_FINE_LOCATION,
-                   android.Manifest.permission.ACCESS_COARSE_LOCATION),
-               0
-           )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    android.Manifest.permission.POST_NOTIFICATIONS,
+                    android.Manifest.permission.ACTIVITY_RECOGNITION,
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION
+                ),
+                0
+            )
         }
         Intent(this, SongPlayerService::class.java).also { intent ->
             bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
         }
 
-        if(intent != null){
+        if (intent != null) {
             pendingIntent = intent
         }
 
@@ -165,72 +222,74 @@ class MainActivity : ComponentActivity() {
 
         startService(Intent(this, StepCounterService::class.java))
 
-        MobileAds.initialize(this){}
+        MobileAds.initialize(this) {}
 
-            setContent {
-                MusicManagerTheme {
-                    CompositionLocalProvider(
-                        LocalDatabaseViewModel provides databaseViewModel,
-                        LocalStepCountViewModel provides stepCountViewModel
-                    ) {
-                        val navController = rememberNavController()
-                        val currentBackStackEntry by navController.currentBackStackEntryAsState()
-                        val currentRoute = currentBackStackEntry?.destination?.route
-                        Scaffold(
-                            snackbarHost = {
-                                if(isBound && musicService?.currentSong?.value?.id != 0 && currentRoute !in screensWithoutPlayback){
-                                    SmallPlayback(navController = navController, musicService = musicService!!)
-                                }
-                            },
-                            bottomBar = {
-
-                                if (currentRoute in screensWithBottomNav) {
-                                    BottomNavBar(
-                                        items = listOf(
-                                            BottomNavItem(
-                                                Screens.SongScreen.route,
-                                                stringResource(id = R.string.songs),
-                                                painterResource(id = R.drawable.music_note)
-                                            ),
-                                            BottomNavItem(
-                                                Screens.PlaylistScreen.route,
-                                                stringResource(id = R.string.playlists),
-                                                painterResource(id = R.drawable.music_playlist)
-                                            ),
-                                            BottomNavItem(
-                                                Screens.AddSongScreen.createRoute("empty"),
-                                                stringResource(id = R.string.add_song),
-                                                painterResource(id = R.drawable.add)
-                                            ),
-                                            BottomNavItem(
-                                                Screens.StepCounterScreen.route,
-                                                stringResource(id = R.string.step_cunter),
-                                                painterResource(id = R.drawable.health)
-                                            ),
-                                            BottomNavItem(
-                                                Screens.LocationTrackerScreen.route,
-                                                stringResource(id = R.string.gps),
-                                                painterResource(id = R.drawable.location)
-                                            )
-                                        ),
-                                        navController = navController,
-                                        onItemClick = {
-                                            navController.navigate(it.route)
-                                        }
-                                    )
-                                }
+        setContent {
+            MusicManagerTheme {
+                CompositionLocalProvider(
+                    LocalDatabaseViewModel provides databaseViewModel,
+                    LocalStepCountViewModel provides stepCountViewModel
+                ) {
+                    val navController = rememberNavController()
+                    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = currentBackStackEntry?.destination?.route
+                    Scaffold(
+                        snackbarHost = {
+                            if (isBound && musicService?.currentSong?.value?.id != 0 && currentRoute !in screensWithoutPlayback) {
+                                SmallPlayback(navController = navController, musicService = musicService!!)
                             }
-
-                        ) {
-                            Navigation(navController = navController)
+                        },
+                        bottomBar = {
+                            if (currentRoute in screensWithBottomNav) {
+                                BottomNavBar(
+                                    items = listOf(
+                                        BottomNavItem(
+                                            Screens.SongScreen.route,
+                                            stringResource(id = R.string.songs),
+                                            painterResource(id = R.drawable.music_note)
+                                        ),
+                                        BottomNavItem(
+                                            Screens.PlaylistScreen.route,
+                                            stringResource(id = R.string.playlists),
+                                            painterResource(id = R.drawable.music_playlist)
+                                        ),
+                                        BottomNavItem(
+                                            Screens.AddSongScreen.createRoute("empty"),
+                                            stringResource(id = R.string.add_song),
+                                            painterResource(id = R.drawable.add)
+                                        ),
+                                        BottomNavItem(
+                                            Screens.StepCounterScreen.route,
+                                            stringResource(id = R.string.step_cunter),
+                                            painterResource(id = R.drawable.health)
+                                        ),
+                                        BottomNavItem(
+                                            Screens.LocationTrackerScreen.route,
+                                            stringResource(id = R.string.gps),
+                                            painterResource(id = R.drawable.location)
+                                        )
+                                    ),
+                                    navController = navController,
+                                    onItemClick = {
+                                        navController.navigate(it.route)
+                                    }
+                                )
+                            }
                         }
+                    ) {
+                        Navigation(navController = navController)
                     }
                 }
             }
-
+        }
     }
+
+    /**
+     * Called when the activity is destroyed.
+     * Stops services and unbinds from the SongPlayerService.
+     */
     override fun onDestroy() {
-        val intent=Intent(this, SongPlayerService::class.java).apply{
+        val intent = Intent(this, SongPlayerService::class.java).apply {
             action = SongPlayerService.Actions.STOP_SERVICE.toString()
         }
         startService(intent)

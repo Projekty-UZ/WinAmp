@@ -21,6 +21,7 @@ gps = "19.0.0"
 gradle-secrets = "2.0.1"
 firebase-auth = "22.3.0"
 google-services = "4.4.1"
+dokka = "2.0.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -59,3 +60,4 @@ chaquopy = { id = "com.chaquo.python", version.ref = "chaquopy" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "devtools" }
 secrets = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "gradle-secrets" }
 google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }

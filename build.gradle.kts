@@ -5,4 +5,6 @@ plugins {
     alias(libs.plugins.chaquopy) apply false
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.secrets) apply false
+    alias(libs.plugins.google.services) apply false
+    alias(libs.plugins.dokka) apply false
 }
